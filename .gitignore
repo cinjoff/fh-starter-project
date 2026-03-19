@@ -39,3 +39,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# project tracker (auto-generated)
+.project-tracker/
+
+# sentry local store
+.sentry-local/
