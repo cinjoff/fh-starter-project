@@ -19,6 +19,7 @@ if (process.env.SENTRY_LOCAL === "true") {
         transportOptions: {
           createStore: createLocalSentryStore,
           shouldStore: () => true,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any,
       });
     });

@@ -25,9 +25,7 @@ export async function POST(req: Request) {
       try {
         const obj = JSON.parse(line);
         if (obj.event_id || obj.exception || obj.message) {
-          const envelope = new TextEncoder().encode(
-            `{}\n{"type":"event"}\n${line}`
-          );
+          const envelope = new TextEncoder().encode(`{}\n{"type":"event"}\n${line}`);
           store.push(envelope);
         }
       } catch {

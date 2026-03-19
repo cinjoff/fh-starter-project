@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
 /**
  * CLI tool for querying locally-stored Sentry events.
  *
@@ -12,14 +14,12 @@
  * Reads from .sentry-local/events.db (created when SENTRY_LOCAL=true).
  */
 import Database from "better-sqlite3";
-import { existsSync } from "fs";
-import { resolve } from "path";
 
 const DB_PATH = resolve(process.cwd(), ".sentry-local/events.db");
 
 if (!existsSync(DB_PATH)) {
   console.log(
-    "No .sentry-local/events.db found. Run your app with SENTRY_LOCAL=true to start capturing errors."
+    "No .sentry-local/events.db found. Run your app with SENTRY_LOCAL=true to start capturing errors.",
   );
   process.exit(0);
 }
@@ -34,7 +34,7 @@ function recent() {
 
   let rows;
   if (minutes) {
-    if (isNaN(minutes) || minutes <= 0) {
+    if (Number.isNaN(minutes) || minutes <= 0) {
       console.log("Usage: recent --minutes <positive number>");
       return;
     }
@@ -45,14 +45,14 @@ function recent() {
          FROM events
          WHERE created_at >= ?
          ORDER BY timestamp DESC
-         LIMIT 20`
+         LIMIT 20`,
       )
       .all(cutoff);
   } else {
     rows = db
       .prepare(
         `SELECT event_id, timestamp, level, message, exception
-         FROM events ORDER BY timestamp DESC LIMIT 20`
+         FROM events ORDER BY timestamp DESC LIMIT 20`,
       )
       .all();
   }
@@ -65,7 +65,9 @@ function recent() {
   console.log(`=== Recent Errors (${rows.length}) ===\n`);
   for (const row of rows) {
     const exc = row.exception ? summarizeException(row.exception) : "";
-    console.log(`[${row.timestamp}] ${row.level.toUpperCase()}: ${row.message || exc || "(no message)"}`);
+    console.log(
+      `[${row.timestamp}] ${row.level.toUpperCase()}: ${row.message || exc || "(no message)"}`,
+    );
     if (exc && row.message) console.log(`  Exception: ${exc}`);
     console.log(`  ID: ${row.event_id}\n`);
   }
@@ -85,7 +87,7 @@ function search() {
        FROM events
        WHERE message LIKE ? OR exception LIKE ? OR breadcrumbs LIKE ?
        ORDER BY timestamp DESC
-       LIMIT 20`
+       LIMIT 20`,
     )
     .all(pattern, pattern, pattern);
 
@@ -97,7 +99,9 @@ function search() {
   console.log(`=== Search Results for "${keyword}" (${rows.length}) ===\n`);
   for (const row of rows) {
     const exc = row.exception ? summarizeException(row.exception) : "";
-    console.log(`[${row.timestamp}] ${row.level.toUpperCase()}: ${row.message || exc || "(no message)"}`);
+    console.log(
+      `[${row.timestamp}] ${row.level.toUpperCase()}: ${row.message || exc || "(no message)"}`,
+    );
     console.log(`  ID: ${row.event_id}\n`);
   }
 }
@@ -111,7 +115,7 @@ function stats() {
     .prepare(
       `SELECT message, COUNT(*) as count FROM events
        WHERE message IS NOT NULL
-       GROUP BY message ORDER BY count DESC LIMIT 10`
+       GROUP BY message ORDER BY count DESC LIMIT 10`,
     )
     .all();
 
@@ -120,7 +124,7 @@ function stats() {
       `SELECT strftime('%H:00', timestamp) as hour, COUNT(*) as count
        FROM events
        WHERE timestamp >= datetime('now', '-1 hour')
-       GROUP BY hour`
+       GROUP BY hour`,
     )
     .all();
 
@@ -153,9 +157,7 @@ function detail() {
     process.exit(1);
   }
 
-  const row = db
-    .prepare("SELECT * FROM events WHERE event_id = ?")
-    .get(eventId);
+  const row = db.prepare("SELECT * FROM events WHERE event_id = ?").get(eventId);
 
   if (!row) {
     console.log(`No event found with ID: ${eventId}`);
@@ -208,7 +210,9 @@ function detail() {
       const bc = JSON.parse(row.breadcrumbs);
       const values = bc.values || bc;
       for (const b of (Array.isArray(values) ? values : []).slice(-10)) {
-        console.log(`  [${b.timestamp || "?"}] ${b.category || "?"}: ${b.message || JSON.stringify(b.data || {})}`);
+        console.log(
+          `  [${b.timestamp || "?"}] ${b.category || "?"}: ${b.message || JSON.stringify(b.data || {})}`,
+        );
       }
     } catch {
       console.log(`  ${row.breadcrumbs}`);

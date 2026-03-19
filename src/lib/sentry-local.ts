@@ -8,9 +8,10 @@
  * Used by: sentry.server.config.ts (server), /api/sentry-local (client tunnel)
  * Query with: src/lib/sentry-local-query.mjs
  */
+
+import fs from "node:fs";
+import path from "node:path";
 import Database from "better-sqlite3";
-import path from "path";
-import fs from "fs";
 
 const DB_DIR = path.resolve(process.cwd(), ".sentry-local");
 const DB_PATH = path.join(DB_DIR, "events.db");
@@ -61,9 +62,7 @@ function pruneOldEvents() {
   writeCount++;
   if (writeCount % 100 !== 0) return;
   try {
-    getDb().exec(
-      "DELETE FROM events WHERE created_at < datetime('now', '-7 days')"
-    );
+    getDb().exec("DELETE FROM events WHERE created_at < datetime('now', '-7 days')");
   } catch {
     // best-effort pruning
   }
@@ -83,31 +82,20 @@ function extractEventFields(envelope: Uint8Array) {
             event_id: obj.event_id || null,
             timestamp: obj.timestamp
               ? new Date(
-                  typeof obj.timestamp === "number"
-                    ? obj.timestamp * 1000
-                    : obj.timestamp
+                  typeof obj.timestamp === "number" ? obj.timestamp * 1000 : obj.timestamp,
                 ).toISOString()
               : new Date().toISOString(),
             level: obj.level || "error",
             type: obj.type || null,
-            message:
-              obj.message ||
-              obj.exception?.values?.[0]?.value ||
-              null,
+            message: obj.message || obj.exception?.values?.[0]?.value || null,
             transaction_name: obj.transaction || null,
             release: obj.release || null,
             environment: obj.environment || null,
             tags: obj.tags ? JSON.stringify(obj.tags) : null,
-            breadcrumbs: obj.breadcrumbs
-              ? JSON.stringify(obj.breadcrumbs)
-              : null,
-            exception: obj.exception
-              ? JSON.stringify(obj.exception)
-              : null,
+            breadcrumbs: obj.breadcrumbs ? JSON.stringify(obj.breadcrumbs) : null,
+            exception: obj.exception ? JSON.stringify(obj.exception) : null,
             request: obj.request ? JSON.stringify(obj.request) : null,
-            contexts: obj.contexts
-              ? JSON.stringify(obj.contexts)
-              : null,
+            contexts: obj.contexts ? JSON.stringify(obj.contexts) : null,
             user_data: obj.user ? JSON.stringify(obj.user) : null,
           };
         }
