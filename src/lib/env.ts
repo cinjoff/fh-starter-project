@@ -5,13 +5,13 @@ export const env = createEnv({
   server: {
     SENTRY_DSN: z.string().optional(),
     SENTRY_LOCAL: z.string().optional(),
-    SUPABASE_URL: z.string().url().optional(),
+    SUPABASE_URL: z.url().optional(),
     SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
   },
   client: {
     NEXT_PUBLIC_SENTRY_DSN: z.string().optional(),
     NEXT_PUBLIC_SENTRY_LOCAL: z.string().optional(),
-    NEXT_PUBLIC_SUPABASE_URL: z.string().url().optional(),
+    NEXT_PUBLIC_SUPABASE_URL: z.url().optional(),
     NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().optional(),
   },
   experimental__runtimeEnv: {
