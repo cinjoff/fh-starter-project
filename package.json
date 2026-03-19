@@ -20,8 +20,8 @@
       "biome check --write",
       "eslint --fix"
     ],
-    "*.{json,css,md}": [
-      "biome check --write"
+    "*.{json,css}": [
+      "biome check --write --no-errors-on-unmatched"
     ]
   },
   "dependencies": {
