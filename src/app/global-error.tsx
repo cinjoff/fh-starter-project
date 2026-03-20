@@ -1,6 +1,8 @@
 "use client";
 
+import * as Sentry from "@sentry/nextjs";
 import { useEffect } from "react";
+import "@/app/globals.css";
 
 export default function GlobalError({
   error,
@@ -10,37 +12,19 @@ export default function GlobalError({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error(error);
+    Sentry.captureException(error);
   }, [error]);
 
   return (
     <html lang="en">
-      <body>
-        <div
-          style={{
-            display: "flex",
-            minHeight: "100vh",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: "16px",
-            fontFamily: "system-ui, sans-serif",
-          }}
-        >
-          <h2 style={{ fontSize: "1.25rem", fontWeight: 600 }}>Something went wrong</h2>
-          <p style={{ color: "#71717a" }}>{error.message}</p>
+      <body className="bg-background text-foreground font-sans">
+        <div className="flex min-h-screen flex-col items-center justify-center gap-4">
+          <h2 className="text-xl font-semibold">Something went wrong</h2>
+          <p className="text-muted-foreground">{error.message}</p>
           <button
             type="button"
             onClick={reset}
-            style={{
-              padding: "8px 16px",
-              borderRadius: "6px",
-              backgroundColor: "#18181b",
-              color: "#fafafa",
-              border: "none",
-              cursor: "pointer",
-              fontSize: "14px",
-            }}
+            className="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground hover:bg-primary/90"
           >
             Try again
           </button>
