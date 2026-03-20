@@ -17,14 +17,22 @@ Every new project requires the same 2-3 days of boilerplate: auth, DB, error tra
 
 **In:**
 - Next.js 16 + React 19 + TypeScript + Tailwind v4 (pnpm)
-- Shadcn/ui components + Phosphor Icons
+- Shadcn/ui components (skeleton, dialog, table, sonner) + Phosphor Icons
 - Supabase (auth + Postgres + minimal migration)
 - Sentry error tracking (production DSN + local SQLite for dev)
 - Zod validation + t3-env for environment variables
+- Forms: react-hook-form + @hookform/resolvers + ActionState<T> type + SubmitButton
+- Toasts: sonner (Toaster in root layout)
+- URL state: nuqs
+- Dates: date-fns + thin utility wrappers
+- Error boundaries: error.tsx, global-error.tsx, not-found.tsx with Sentry integration
+- Metadata: title template, OG/twitter defaults, metadataBase, robots.txt, sitemap.xml
 - Vitest (unit/integration) + Playwright (E2E) with minimal examples
 - Biome (formatting/linting) + Husky + lint-staged
-- Security: CSP/HSTS headers via proxy.ts, React error boundaries
+- Security: CSP/HSTS headers via proxy.ts
 - GitHub Actions CI (lint, typecheck, test)
+- Release automation: release-please (auto-changelog, GitHub releases, version bumps)
+- CHANGELOG.md in keepachangelog format
 - conductor.json for Conductor workspace support
 - Vercel deployment preset
 - Comprehensive CLAUDE.md and documented code for LLM readability
@@ -32,8 +40,10 @@ Every new project requires the same 2-3 days of boilerplate: auth, DB, error tra
 
 **Out:**
 - i18n, analytics, email, payments
-- Complex page templates beyond the home screen
-- CI/CD beyond basic lint/typecheck/test
+- Example pages (shadcn skills generate patterns at build time)
+- @tanstack/react-table, @tanstack/react-query (install when needed)
+- Motion/animations (app-specific choice)
+- Generic component wrappers (against shadcn philosophy)
 - Custom design system (users run `/fh:teach-impeccable` on their project)
 
 ## Constraints

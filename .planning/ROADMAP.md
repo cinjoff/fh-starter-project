@@ -3,16 +3,20 @@
 ## Phase 1: Project Scaffolding and Core Setup
 **Goal:** Working Next.js app with all dependencies installed, dev tooling configured, and base layout rendering.
 
-**Requirements:** REQ-01, REQ-02 (partial)
+**Requirements:** REQ-01, REQ-02, REQ-02a, REQ-10a
 
 **Deliverables:**
-- All npm dependencies installed
+- All npm dependencies installed (including sonner, react-hook-form, @hookform/resolvers, date-fns, nuqs)
 - Biome configured and working
 - Husky + lint-staged pre-commit hooks
 - t3-env environment validation scaffold
-- Shadcn/ui initialized with default theme
+- Shadcn/ui initialized with default theme + skeleton, dialog, table, sonner components
 - Phosphor Icons available
-- Base layout with error boundary
+- Base layout with Toaster (sonner) and metadata template (metadataBase, title template, OG/twitter defaults)
+- SubmitButton component (useFormStatus)
+- ActionState<T> type for server actions (src/lib/actions/types.ts)
+- src/lib/dates.ts (formatDate, formatRelative)
+- CHANGELOG.md seeded in keepachangelog format
 - Home page placeholder
 - conductor.json and vercel.json
 - `pnpm dev` starts, `pnpm build` succeeds
@@ -40,7 +44,7 @@
 ## Phase 3: Error Tracking and Security
 **Goal:** Sentry capturing errors in both dev (local SQLite) and production modes. Security headers hardened.
 
-**Requirements:** REQ-05, REQ-07
+**Requirements:** REQ-05, REQ-07, REQ-07a
 
 **Deliverables:**
 - sentry.server.config.ts with local/production modes
@@ -48,15 +52,16 @@
 - /api/sentry-local tunnel endpoint
 - sentry-local-query.mjs CLI tool
 - Security headers in proxy.ts (CSP, HSTS, etc.)
-- React error boundary component
-- Error boundary wired into root layout
+- error.tsx (root-level error boundary with Sentry reporting + retry)
+- global-error.tsx (root layout crash handler)
+- not-found.tsx (custom 404 page)
 
 ---
 
 ## Phase 4: Testing and CI
 **Goal:** Green test suite with minimal examples covering unit, component, and E2E patterns.
 
-**Requirements:** REQ-06, REQ-08
+**Requirements:** REQ-06, REQ-08, REQ-08a
 
 **Deliverables:**
 - Vitest config with React support
@@ -65,6 +70,7 @@
 - Playwright config
 - Example E2E test (home page loads, auth flow)
 - GitHub Actions workflow (lint, typecheck, test)
+- release-please GitHub Action + config files (release-please-config.json, .release-please-manifest.json)
 - All tests passing
 
 ---
