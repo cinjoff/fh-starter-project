@@ -1,7 +1,7 @@
 # Project State
 
 ## Current Phase
-Phase 3: Error Tracking and Security
+Phase 4: Testing and CI
 
 ## Phase Status
 not-started
@@ -15,8 +15,10 @@ no-plan
   - 01-02: Production utilities (sonner, RHF, date-fns, nuqs), ActionState, SubmitButton, dates.ts, CHANGELOG.md, metadata template
 - Phase 2: Authentication and Database (2026-03-20)
   - 02-01: Supabase clients, proxy, auth pages, protected routes, profiles migration
+- Phase 3: Error Tracking and Security (2026-03-20)
+  - 03-01: Security headers in proxy.ts, Sentry in error boundaries, onRequestError, not-found page
 
 ## Notes
-Phase 2 complete. Supabase auth fully optional — app works with or without env vars.
-Proxy refreshes sessions, protected layout guards routes, login page has email/password + OAuth.
-Ready for Phase 3 planning.
+Phase 3 complete. Sentry captures errors in error boundaries (client) and via onRequestError (server).
+Security headers (HSTS, CSP, X-Frame-Options, etc.) applied to all proxy responses.
+Ready for Phase 4 planning.
