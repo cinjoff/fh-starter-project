@@ -1,8 +1,8 @@
 {
   "scripts": {
-    "setup": "pnpm install && [ -f \"$CONDUCTOR_ROOT_PATH/.env.local\" ] && cp \"$CONDUCTOR_ROOT_PATH/.env.local\" .env.local || true; node -e \"var fs=require('fs'),f='.claude/settings.json',s={};try{s=JSON.parse(fs.readFileSync(f,'utf8'))}catch{}s.env=Object.assign(s.env||{},{CLAUDE_CODE_TASK_LIST_ID:process.env.CONDUCTOR_WORKSPACE_NAME||'default'});fs.writeFileSync(f,JSON.stringify(s,null,2)+'\\n')\"",
-    "run": "pnpm dev --port $CONDUCTOR_PORT",
-    "archive": "rm -rf \"$HOME/.claude/tasks/${CONDUCTOR_WORKSPACE_NAME}\" 2>/dev/null; true"
+    "setup": "sh -c 'pnpm install && [ -f \"$CONDUCTOR_ROOT_PATH/.env.local\" ] && cp \"$CONDUCTOR_ROOT_PATH/.env.local\" .env.local || true; node -e \"var fs=require(\\\"fs\\\"),f=\\\".claude/settings.json\\\",s={};try{s=JSON.parse(fs.readFileSync(f,\\\"utf8\\\"))}catch{}s.env=Object.assign(s.env||{},{CLAUDE_CODE_TASK_LIST_ID:process.env.CONDUCTOR_WORKSPACE_NAME||\\\"default\\\"});fs.writeFileSync(f,JSON.stringify(s,null,2)+\\\"\\\\n\\\")\"'",
+    "run": "sh -c 'pnpm dev --port $CONDUCTOR_PORT'",
+    "archive": "sh -c 'rm -rf \"$HOME/.claude/tasks/${CONDUCTOR_WORKSPACE_NAME}\" 2>/dev/null; true'"
   },
   "env": {
     "CLAUDE_CODE_ENABLE_TASKS": "true",
