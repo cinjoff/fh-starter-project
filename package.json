@@ -55,7 +55,7 @@
   "devDependencies": {
     "@biomejs/biome": "^2.4.8",
     "@playwright/test": "^1.58.2",
-    "@rolldown/binding-darwin-arm64": "1.0.0-rc.10",
+
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",

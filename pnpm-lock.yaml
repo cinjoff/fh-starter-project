@@ -93,9 +93,6 @@ importers:
       '@playwright/test':
         specifier: ^1.58.2
         version: 1.58.2
-      '@rolldown/binding-darwin-arm64':
-        specifier: 1.0.0-rc.10
-        version: 1.0.0-rc.10
       '@tailwindcss/postcss':
         specifier: ^4
         version: 4.2.2
@@ -7328,7 +7325,8 @@ snapshots:
   '@rolldown/binding-android-arm64@1.0.0-rc.10':
     optional: true
 
-  '@rolldown/binding-darwin-arm64@1.0.0-rc.10': {}
+  '@rolldown/binding-darwin-arm64@1.0.0-rc.10':
+    optional: true
 
   '@rolldown/binding-darwin-x64@1.0.0-rc.10':
     optional: true
