@@ -18,6 +18,7 @@ Next.js 16 + React 19 + TypeScript, Tailwind v4, Shadcn/ui, Phosphor Icons, Supa
 | `pnpm test:e2e` | Run Playwright |
 | `pnpm check` | Biome lint + format check |
 | `pnpm typecheck` | TypeScript type check |
+| `pnpm format` | Biome auto-format (write mode) |
 
 ## Architecture
 
@@ -48,7 +49,7 @@ supabase/        # Migrations and seed data
 
 ## Planning
 
-Project state tracked in `.planning/`. Run `/fh:resume-work` to check status.
+Project state tracked in `.planning/`. All 5 phases complete.
 Design tokens in `.planning/DESIGN.md` — run `/fh:teach-impeccable` to customize.
 
 ## Gotchas
@@ -57,3 +58,4 @@ Design tokens in `.planning/DESIGN.md` — run `/fh:teach-impeccable` to customi
 - `cookies()`, `headers()`, `params` are all async (must be awaited)
 - Sentry local mode: set `SENTRY_LOCAL=true` in .env.local for dev SQLite store
 - Run `node src/lib/sentry-local-query.mjs recent` to inspect captured errors
+- Vitest: use `pnpm test --run` in CI/scripts to avoid watch mode hanging
