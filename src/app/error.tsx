@@ -1,5 +1,6 @@
 "use client";
 
+/** Route-level error boundary: reports to Sentry and offers a retry button. */
 import * as Sentry from "@sentry/nextjs";
 import { useEffect } from "react";
 

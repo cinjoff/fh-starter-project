@@ -1,3 +1,4 @@
+/** Next.js 16 proxy (replaces middleware.ts): refreshes Supabase sessions and applies security headers. */
 import type { NextRequest, NextResponse } from "next/server";
 import { updateSession } from "@/lib/supabase/proxy";
 

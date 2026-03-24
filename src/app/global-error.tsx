@@ -1,5 +1,6 @@
 "use client";
 
+/** Root layout crash handler — last-resort error boundary when the main layout fails. */
 import * as Sentry from "@sentry/nextjs";
 import { useEffect } from "react";
 import "@/app/globals.css";

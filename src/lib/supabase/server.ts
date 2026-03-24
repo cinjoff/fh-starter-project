@@ -1,3 +1,4 @@
+/** Server-side Supabase client with cookie handling for RSC and route handlers. */
 import { createServerClient } from "@supabase/ssr";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";

@@ -1,3 +1,4 @@
+/** Browser-side Supabase client for use in client components. */
 import { createBrowserClient } from "@supabase/ssr";
 import type { SupabaseClient } from "@supabase/supabase-js";
 

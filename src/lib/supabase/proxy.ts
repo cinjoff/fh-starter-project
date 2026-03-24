@@ -1,3 +1,4 @@
+/** Supabase session refresh invoked by proxy.ts on every request; redirects unauthenticated users to /login. */
 import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 

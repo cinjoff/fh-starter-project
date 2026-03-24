@@ -1,3 +1,4 @@
+/** Type-safe environment variables validated at build time via t3-env + Zod. */
 import { createEnv } from "@t3-oss/env-nextjs";
 import { z } from "zod";
 
