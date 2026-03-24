@@ -1,36 +1,124 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# fh-starter-project
+
+Production-ready Next.js starter template with authentication, database, error tracking, and testing pre-configured.
+
+## Features
+
+- **Authentication** -- Supabase Auth with SSR cookie handling
+- **Database** -- Supabase Postgres with migrations and seed data
+- **Error Tracking** -- Sentry integration with local dev mode (SQLite fallback)
+- **Testing** -- Vitest unit/component tests + Playwright E2E tests
+- **CI** -- Automated linting, type checking, and test runs
+- **Security Headers** -- Configured via Next.js proxy (CSP, HSTS, etc.)
+- **Env Validation** -- Runtime-safe environment variables with Zod schemas
+- **Release Automation** -- Conventional commits and versioned releases
+
+## Tech Stack
+
+Next.js 16, React 19, TypeScript, Tailwind v4, Shadcn/ui, Phosphor Icons, Supabase, Sentry, Zod, Biome, pnpm
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js 20+
+- pnpm (`corepack enable` to activate)
+
+### Setup
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+# Clone the repository
+git clone <repo-url>
+cd fh-starter-project
+
+# Install dependencies
+pnpm install
+
+# Configure environment
+cp .env.example .env.local
+# Edit .env.local with your values (see Environment Variables below)
+
+# Run the dev server
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) to see the app.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Environment Variables
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+All variables are validated at runtime via `src/lib/env.ts` using Zod schemas.
 
-## Learn More
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `NEXT_PUBLIC_APP_URL` | Public-facing app URL | `http://localhost:3000` | No |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL | -- | No |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anonymous key | -- | No |
+| `SUPABASE_URL` | Supabase URL (server-side) | -- | No |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key (server-side) | -- | No |
+| `SENTRY_DSN` | Sentry DSN (server-side) | -- | No |
+| `NEXT_PUBLIC_SENTRY_DSN` | Sentry DSN (client-side) | -- | No |
+| `SENTRY_LOCAL` | Enable Sentry local SQLite mode | -- | No |
+| `NEXT_PUBLIC_SENTRY_LOCAL` | Enable Sentry local mode (client-side) | -- | No |
 
-To learn more about Next.js, take a look at the following resources:
+## Commands
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+| Command | Description |
+|---------|-------------|
+| `pnpm dev` | Start development server |
+| `pnpm build` | Production build |
+| `pnpm test` | Run Vitest unit/component tests |
+| `pnpm test:e2e` | Run Playwright E2E tests |
+| `pnpm check` | Biome lint + format check |
+| `pnpm typecheck` | TypeScript type check |
+| `pnpm format` | Auto-fix lint and format issues |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Project Structure
 
-## Deploy on Vercel
+```
+src/
+  app/           # Next.js App Router (pages, layouts, API routes)
+  lib/           # Shared utilities (Supabase client, Sentry, env validation)
+  components/    # React components (ui/ for Shadcn components)
+  tests/         # Vitest unit and component tests
+e2e/             # Playwright E2E tests
+supabase/        # Database migrations and seed data
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Deployment
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+This project uses the Vercel preset for Next.js. To deploy:
+
+1. Push to your Git provider (GitHub, GitLab, etc.)
+2. Import the project in [Vercel](https://vercel.com)
+3. Set the following environment variables in the Vercel dashboard:
+   - `NEXT_PUBLIC_APP_URL` -- your production domain
+   - `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` -- Supabase project credentials
+   - `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` -- server-side Supabase access
+   - `SENTRY_DSN` and `NEXT_PUBLIC_SENTRY_DSN` -- Sentry error tracking
+4. Deploy
+
+## Extending
+
+### Adding pages
+
+Create new files in `src/app/`. Use the App Router file conventions (`page.tsx`, `layout.tsx`, `loading.tsx`, `error.tsx`). Server components are the default; add `'use client'` only when you need browser APIs or interactivity.
+
+### Adding API routes
+
+Create `route.ts` files in `src/app/api/`. Next.js 16 uses the standard Web Request/Response API.
+
+### Database migrations
+
+Add SQL migration files in `supabase/migrations/`. Run `supabase db push` to apply locally or deploy via Supabase dashboard.
+
+### Adding Shadcn components
+
+```bash
+pnpm dlx shadcn@latest add <component-name>
+```
+
+Components are installed to `src/components/ui/`.
+
+## LLM/Agent Conventions
+
+See [CLAUDE.md](./CLAUDE.md) for coding conventions, commit formats, and agent instructions used by AI assistants working on this codebase.

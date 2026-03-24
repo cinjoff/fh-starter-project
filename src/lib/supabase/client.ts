@@ -1,0 +1,16 @@
+/** Browser-side Supabase client for use in client components. */
+import { createBrowserClient } from "@supabase/ssr";
+import type { SupabaseClient } from "@supabase/supabase-js";
+
+export type MaybeSupabaseClient = SupabaseClient | null;
+
+export function createClient(): MaybeSupabaseClient {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    return null;
+  }
+
+  return createBrowserClient(supabaseUrl, supabaseAnonKey);
+}
