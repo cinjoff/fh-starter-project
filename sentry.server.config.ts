@@ -11,18 +11,15 @@ import * as Sentry from "@sentry/nextjs";
 
 if (process.env.SENTRY_LOCAL === "true") {
   // Dynamic imports: better-sqlite3 is a native addon not available in production.
-  import("@sentry/core").then(({ makeOfflineTransport }) => {
-    import("@/lib/sentry-local").then(({ createLocalSentryStore }) => {
-      Sentry.init({
-        dsn: process.env.SENTRY_DSN || "https://local@localhost/1",
-        transport: makeOfflineTransport(Sentry.makeNodeTransport),
-        transportOptions: {
-          createStore: createLocalSentryStore,
-          shouldStore: () => true,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } as any,
-      });
-    });
+  const { makeOfflineTransport } = await import("@sentry/core");
+  const { createLocalSentryStore } = await import("@/lib/sentry-local");
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN || "https://local@localhost/1",
+    transport: makeOfflineTransport(Sentry.makeNodeTransport),
+    transportOptions: {
+      createStore: createLocalSentryStore,
+      shouldStore: () => true,
+    } as Record<string, unknown>,
   });
 } else if (process.env.SENTRY_DSN) {
   Sentry.init({ dsn: process.env.SENTRY_DSN });

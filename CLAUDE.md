@@ -39,6 +39,7 @@ supabase/        # Migrations and seed data
 - Stage files individually, never `git add .`
 - Server components by default; `'use client'` only when needed
 - Zod schemas for all external data (API inputs, env vars, DB rows)
+- Server action FormData must be parsed with Zod before use (not `as string` casts)
 - Next.js 16: use `proxy.ts` (not middleware.ts), await `params`/`cookies()`/`headers()`
 
 ## Testing
@@ -59,3 +60,5 @@ Design tokens in `.planning/DESIGN.md` — run `/fh:teach-impeccable` to customi
 - Sentry local mode: set `SENTRY_LOCAL=true` in .env.local for dev SQLite store
 - Run `node src/lib/sentry-local-query.mjs recent` to inspect captured errors
 - Vitest: use `pnpm test --run` in CI/scripts to avoid watch mode hanging
+- Proxy (`src/proxy.ts`) only refreshes Supabase sessions — auth redirects are in `(protected)/layout.tsx`
+- OAuth callback validates `x-forwarded-host` against `NEXT_PUBLIC_APP_URL` — do not trust raw header

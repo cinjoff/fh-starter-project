@@ -29,21 +29,8 @@ export async function updateSession(request: NextRequest) {
     },
   });
 
-  // IMPORTANT: use getUser() — not getSession() — to validate tokens server-side.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (
-    !user &&
-    !request.nextUrl.pathname.startsWith("/login") &&
-    !request.nextUrl.pathname.startsWith("/signup") &&
-    !request.nextUrl.pathname.startsWith("/auth")
-  ) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    return NextResponse.redirect(url);
-  }
+  // Refresh the session token silently — the (protected) layout handles auth redirects.
+  await supabase.auth.getUser();
 
   return supabaseResponse;
 }

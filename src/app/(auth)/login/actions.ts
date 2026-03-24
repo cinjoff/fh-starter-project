@@ -2,8 +2,14 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { z } from "zod";
 import type { ActionState } from "@/lib/actions/types";
 import { createClient } from "@/lib/supabase/server";
+
+const authSchema = z.object({
+  email: z.email("Invalid email address"),
+  password: z.string().min(1, "Password is required"),
+});
 
 export async function login(_prevState: ActionState, formData: FormData): Promise<ActionState> {
   const supabase = await createClient();
@@ -12,16 +18,19 @@ export async function login(_prevState: ActionState, formData: FormData): Promis
     return { success: false, message: "Authentication is not configured" };
   }
 
-  const email = formData.get("email") as string;
-  const password = formData.get("password") as string;
-
-  const { error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
+  const result = authSchema.safeParse({
+    email: formData.get("email"),
+    password: formData.get("password"),
   });
 
+  if (!result.success) {
+    return { success: false, message: result.error.issues[0].message };
+  }
+
+  const { error } = await supabase.auth.signInWithPassword(result.data);
+
   if (error) {
-    return { success: false, message: error.message };
+    return { success: false, message: "Invalid email or password" };
   }
 
   revalidatePath("/", "layout");
@@ -35,16 +44,19 @@ export async function signup(_prevState: ActionState, formData: FormData): Promi
     return { success: false, message: "Authentication is not configured" };
   }
 
-  const email = formData.get("email") as string;
-  const password = formData.get("password") as string;
-
-  const { error } = await supabase.auth.signUp({
-    email,
-    password,
+  const result = authSchema.safeParse({
+    email: formData.get("email"),
+    password: formData.get("password"),
   });
 
+  if (!result.success) {
+    return { success: false, message: result.error.issues[0].message };
+  }
+
+  const { error } = await supabase.auth.signUp(result.data);
+
   if (error) {
-    return { success: false, message: error.message };
+    return { success: false, message: "Sign up failed. Please try again." };
   }
 
   revalidatePath("/", "layout");

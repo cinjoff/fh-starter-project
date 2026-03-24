@@ -28,7 +28,19 @@ export async function GET(request: NextRequest) {
   }
 
   const forwardedHost = request.headers.get("x-forwarded-host");
-  const redirectBase = forwardedHost ? `https://${forwardedHost}` : origin;
+  let redirectBase = origin;
+
+  if (forwardedHost) {
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+    try {
+      const allowedHost = appUrl ? new URL(appUrl).host : null;
+      if (allowedHost && forwardedHost === allowedHost) {
+        redirectBase = `https://${forwardedHost}`;
+      }
+    } catch {
+      // Invalid APP_URL — fall back to origin
+    }
+  }
 
   return NextResponse.redirect(new URL(next, redirectBase));
 }

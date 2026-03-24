@@ -48,3 +48,10 @@ next-env.d.ts
 
 # sentry local store
 .sentry-local/
+
+# playwright
+blob-report/
+playwright/.cache/
+
+# agent memory
+.planning/memory/

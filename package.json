@@ -17,8 +17,7 @@
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
-      "biome check --write",
-      "eslint --fix"
+      "biome check --write"
     ],
     "*.{json,css}": [
       "biome check --write --no-errors-on-unmatched"
