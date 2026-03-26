@@ -1,18 +1,20 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { createClient } from "@/lib/supabase/client";
+import { authClient } from "@/lib/auth-client";
 
 export function SignOutButton() {
   const router = useRouter();
 
   const handleSignOut = async () => {
-    const supabase = createClient();
-    if (!supabase) return;
-
-    await supabase.auth.signOut();
-    router.push("/login");
+    try {
+      await authClient.signOut();
+      router.push("/login");
+    } catch {
+      toast.error("Sign out failed. Please try again.");
+    }
   };
 
   return (

@@ -1,124 +1,103 @@
 # fh-starter-project
 
-Production-ready Next.js starter template with authentication, database, error tracking, and testing pre-configured.
+An opinionated starter template for building full-stack applications, designed to be used with [fhhs-skills](https://github.com/cinjoff/fhhs-skills) — a Claude Code skill pack for shipping production-quality software with AI assistance.
 
-## Features
+Skip the boilerplate. Start building. This template ships with authentication, a database, error tracking, and a full testing setup already wired together. Instead of spending a week connecting Better Auth to Supabase to Sentry to CI, you clone this repo and start writing features on day one.
 
-- **Authentication** -- Supabase Auth with SSR cookie handling
-- **Database** -- Supabase Postgres with migrations and seed data
-- **Error Tracking** -- Sentry integration with local dev mode (SQLite fallback)
-- **Testing** -- Vitest unit/component tests + Playwright E2E tests
-- **CI** -- Automated linting, type checking, and test runs
-- **Security Headers** -- Configured via Next.js proxy (CSP, HSTS, etc.)
-- **Env Validation** -- Runtime-safe environment variables with Zod schemas
-- **Release Automation** -- Conventional commits and versioned releases
+## What you get out of the box
 
-## Tech Stack
+**Authentication** — Better Auth with email/password login, signup, password reset, and protected routes. Auth pages use client-side forms with Zod validation, toast notifications for errors, and a guarded layout that redirects unauthenticated users.
 
-Next.js 16, React 19, TypeScript, Tailwind v4, Shadcn/ui, Phosphor Icons, Supabase, Sentry, Zod, Biome, pnpm
+**Database** — Supabase (Postgres) with migrations tracked in `supabase/migrations/`. Environment variables are validated at build time through `t3-env` + Zod, so you'll know about missing config before your users do.
 
-## Getting Started
+**Error tracking** — Sentry integration with a local development mode. Set `SENTRY_LOCAL=true` and errors get stored in a local SQLite database instead of flying off to a remote service. Query them with `node src/lib/sentry-local-query.mjs recent`. No Sentry account needed during development.
 
-### Prerequisites
+**Testing** — Vitest for unit/integration tests, Playwright for E2E. Both are configured and have working examples. The CI pipeline runs lint, typecheck, and tests on every push and PR.
 
-- Node.js 20+
-- pnpm (`corepack enable` to activate)
+**Code quality** — Biome handles formatting and linting. Husky + lint-staged run checks on every commit. Conventional commit messages are enforced.
 
-### Setup
+## Tech stack
+
+| Layer | Choice |
+|-------|--------|
+| Framework | Next.js 16 + React 19 |
+| Language | TypeScript (strict) |
+| Styling | Tailwind v4 |
+| Components | shadcn/ui + Base UI primitives |
+| Icons | Phosphor Icons |
+| Auth | Better Auth |
+| Database | Supabase (Postgres) |
+| Email | Resend + React Email |
+| Error tracking | Sentry (with local SQLite mode) |
+| Validation | Zod |
+| Linting | Biome |
+| Testing | Vitest + Playwright |
+| Package manager | pnpm |
+
+## Getting started
 
 ```bash
-# Clone the repository
-git clone <repo-url>
-cd fh-starter-project
-
-# Install dependencies
+# Clone and install
 pnpm install
 
-# Configure environment
+# Set up your environment
 cp .env.example .env.local
-# Edit .env.local with your values (see Environment Variables below)
+# Fill in DATABASE_URL, BETTER_AUTH_SECRET, etc.
 
-# Run the dev server
+# Start developing
 pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to see the app.
+## Using with fhhs-skills
 
-## Environment Variables
+This template is built to work with [fhhs-skills](https://github.com/cinjoff/fhhs-skills), a Claude Code plugin that provides skills for planning, building, reviewing, and shipping full-stack apps. The conventions in this repo — file structure, testing setup, planning artifacts — align with what fhhs-skills expects, so you get the best results when using them together.
 
-All variables are validated at runtime via `src/lib/env.ts` using Zod schemas.
-
-| Variable | Description | Default | Required |
-|----------|-------------|---------|----------|
-| `NEXT_PUBLIC_APP_URL` | Public-facing app URL | `http://localhost:3000` | No |
-| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL | -- | No |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anonymous key | -- | No |
-| `SUPABASE_URL` | Supabase URL (server-side) | -- | No |
-| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key (server-side) | -- | No |
-| `SENTRY_DSN` | Sentry DSN (server-side) | -- | No |
-| `NEXT_PUBLIC_SENTRY_DSN` | Sentry DSN (client-side) | -- | No |
-| `SENTRY_LOCAL` | Enable Sentry local SQLite mode | -- | No |
-| `NEXT_PUBLIC_SENTRY_LOCAL` | Enable Sentry local mode (client-side) | -- | No |
-
-## Commands
-
-| Command | Description |
-|---------|-------------|
-| `pnpm dev` | Start development server |
-| `pnpm build` | Production build |
-| `pnpm test` | Run Vitest unit/component tests |
-| `pnpm test:e2e` | Run Playwright E2E tests |
-| `pnpm check` | Biome lint + format check |
-| `pnpm typecheck` | TypeScript type check |
-| `pnpm format` | Auto-fix lint and format issues |
-
-## Project Structure
+## Project structure
 
 ```
 src/
-  app/           # Next.js App Router (pages, layouts, API routes)
-  lib/           # Shared utilities (Supabase client, Sentry, env validation)
-  components/    # React components (ui/ for Shadcn components)
-  tests/         # Vitest unit and component tests
-e2e/             # Playwright E2E tests
-supabase/        # Database migrations and seed data
+  app/
+    (auth)/          Login, signup, forgot/reset password
+    (app)/           Dashboard and authenticated pages
+    api/             API routes (auth, Sentry local)
+  components/        Shared React components (ui/ for shadcn)
+  lib/               Utilities — auth config, env validation, Sentry local store
+  tests/             Vitest tests
+e2e/                 Playwright E2E tests
+supabase/            Database migrations and seed data
 ```
 
-## Deployment
+**Route groups** keep concerns separated: `(auth)` handles the login flow, `(app)` enforces authentication at the layout level. No scattered auth checks across pages.
 
-This project uses the Vercel preset for Next.js. To deploy:
+## Commands
 
-1. Push to your Git provider (GitHub, GitLab, etc.)
-2. Import the project in [Vercel](https://vercel.com)
-3. Set the following environment variables in the Vercel dashboard:
-   - `NEXT_PUBLIC_APP_URL` -- your production domain
-   - `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` -- Supabase project credentials
-   - `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` -- server-side Supabase access
-   - `SENTRY_DSN` and `NEXT_PUBLIC_SENTRY_DSN` -- Sentry error tracking
-4. Deploy
+| Command | What it does |
+|---------|-------------|
+| `pnpm dev` | Start the dev server |
+| `pnpm build` | Production build |
+| `pnpm test` | Run unit tests |
+| `pnpm test:e2e` | Run end-to-end tests |
+| `pnpm check` | Lint and format check |
+| `pnpm typecheck` | TypeScript type check |
+| `pnpm format` | Auto-format with Biome |
 
-## Extending
+## How CI works
 
-### Adding pages
+Every push to `main` and every pull request triggers the CI pipeline (`.github/workflows/ci.yml`):
 
-Create new files in `src/app/`. Use the App Router file conventions (`page.tsx`, `layout.tsx`, `loading.tsx`, `error.tsx`). Server components are the default; add `'use client'` only when you need browser APIs or interactivity.
+1. Install dependencies with frozen lockfile
+2. Lint with Biome
+3. Typecheck with TypeScript
+4. Run the test suite
 
-### Adding API routes
+## Design decisions worth knowing
 
-Create `route.ts` files in `src/app/api/`. Next.js 16 uses the standard Web Request/Response API.
+**Server components by default.** Client components (`'use client'`) are used only where interactivity requires them — forms, toasts, sign-out buttons. Everything else renders on the server.
 
-### Database migrations
+**Zod everywhere data crosses a boundary.** Environment variables, form submissions, API inputs — all validated with Zod schemas. The `t3-env` integration means a missing env var fails the build, not a user request.
 
-Add SQL migration files in `supabase/migrations/`. Run `supabase db push` to apply locally or deploy via Supabase dashboard.
+**Local-first error tracking.** The Sentry local mode stores events in SQLite during development. You can inspect errors without needing a Sentry account or internet connection. The same Sentry integration works with a real DSN in production.
 
-### Adding Shadcn components
+## License
 
-```bash
-pnpm dlx shadcn@latest add <component-name>
-```
-
-Components are installed to `src/components/ui/`.
-
-## LLM/Agent Conventions
-
-See [CLAUDE.md](./CLAUDE.md) for coding conventions, commit formats, and agent instructions used by AI assistants working on this codebase.
+Private. See `package.json` for details.

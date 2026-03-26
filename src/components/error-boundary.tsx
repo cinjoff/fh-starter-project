@@ -35,7 +35,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
       return (
         <div className="flex min-h-[400px] flex-col items-center justify-center gap-4">
           <h2 className="text-xl font-semibold">Something went wrong</h2>
-          <p className="text-muted-foreground">{this.state.error?.message}</p>
+          <p className="text-muted-foreground">An unexpected error occurred.</p>
           <button
             type="button"
             onClick={() => this.setState({ hasError: false, error: null })}

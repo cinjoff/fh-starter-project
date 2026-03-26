@@ -55,10 +55,11 @@ Design tokens in `.planning/DESIGN.md` — run `/fh:teach-impeccable` to customi
 
 ## Gotchas
 
+- `shadcn` must be in `dependencies` (not devDependencies) — `globals.css` imports `shadcn/tailwind.css` for Tailwind v4 variants/animations
 - Next.js 16 renamed middleware.ts to proxy.ts — read `node_modules/next/dist/docs/` for API changes
 - `cookies()`, `headers()`, `params` are all async (must be awaited)
 - Sentry local mode: set `SENTRY_LOCAL=true` in .env.local for dev SQLite store
 - Run `node src/lib/sentry-local-query.mjs recent` to inspect captured errors
 - Vitest: use `pnpm test --run` in CI/scripts to avoid watch mode hanging
-- Proxy (`src/proxy.ts`) only refreshes Supabase sessions — auth redirects are in `(protected)/layout.tsx`
+- Proxy (`src/proxy.ts`) only applies security headers — auth redirects are in `(app)/layout.tsx`
 - OAuth callback validates `x-forwarded-host` against `NEXT_PUBLIC_APP_URL` — do not trust raw header
