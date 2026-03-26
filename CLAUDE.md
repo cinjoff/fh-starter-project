@@ -50,7 +50,7 @@ supabase/        # Migrations and seed data
 
 ## Planning
 
-Project state tracked in `.planning/`. All 5 phases complete.
+Project planning artifacts live in `.planning/` (gitignored, auto-generated).
 Design tokens in `.planning/DESIGN.md` — run `/fh:teach-impeccable` to customize.
 
 ## Gotchas
