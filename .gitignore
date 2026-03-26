@@ -56,3 +56,6 @@ playwright/.cache/
 
 # planning artifacts (auto-generated)
 .planning/
+
+# local auth SQLite database
+.data/
