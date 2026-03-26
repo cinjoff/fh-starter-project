@@ -25,7 +25,7 @@ function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [showVerification, setShowVerification] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
