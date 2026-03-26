@@ -18,7 +18,9 @@ export default function ErrorPage({
   return (
     <div className="flex min-h-[400px] flex-col items-center justify-center gap-4">
       <h2 className="text-xl font-semibold">Something went wrong</h2>
-      <p className="text-muted-foreground">{error.message}</p>
+      <p className="text-muted-foreground">
+        {error.digest ? `Error reference: ${error.digest}` : "An unexpected error occurred."}
+      </p>
       <button
         type="button"
         onClick={reset}

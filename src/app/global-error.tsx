@@ -21,7 +21,9 @@ export default function GlobalError({
       <body className="bg-background text-foreground font-sans">
         <div className="flex min-h-screen flex-col items-center justify-center gap-4">
           <h2 className="text-xl font-semibold">Something went wrong</h2>
-          <p className="text-muted-foreground">{error.message}</p>
+          <p className="text-muted-foreground">
+            {error.digest ? `Error reference: ${error.digest}` : "An unexpected error occurred."}
+          </p>
           <button
             type="button"
             onClick={reset}
