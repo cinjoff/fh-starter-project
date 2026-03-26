@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/nextjs";
 import { Resend } from "resend";
 import { env } from "./env";
 
@@ -41,9 +42,11 @@ export function sendEmail({
     .then((result) => {
       if (result.error) {
         console.error("[email] Resend error:", result.error);
+        Sentry.captureException(result.error);
       }
     })
     .catch((err: unknown) => {
       console.error("[email] Failed to send:", err);
+      Sentry.captureException(err);
     });
 }

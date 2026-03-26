@@ -30,15 +30,15 @@ function loadEnv(): Record<string, string> {
 
 const envVars = loadEnv();
 
+const pool = new Pool({ connectionString: envVars.DATABASE_URL });
+
 export const testAuth = betterAuth({
   secret: envVars.BETTER_AUTH_SECRET,
   baseURL: envVars.BETTER_AUTH_URL || "http://localhost:3000",
-  database: new Pool({ connectionString: envVars.DATABASE_URL }),
+  database: pool,
   emailAndPassword: { enabled: true },
   plugins: [organization(), testUtils()],
 });
-
-const pool = new Pool({ connectionString: envVars.DATABASE_URL });
 
 let _helpers: TestHelpers | null = null;
 
