@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/nextjs";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { auth, authEnabled } from "@/lib/auth";
@@ -13,6 +14,8 @@ export default async function ProtectedLayout({ children }: { children: React.Re
   if (!session) {
     redirect("/login?redirect=/dashboard");
   }
+
+  Sentry.setUser({ id: session.user.id, email: session.user.email });
 
   if (
     env.ENABLE_ORGANIZATIONS &&
