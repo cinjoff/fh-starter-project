@@ -55,13 +55,14 @@ export async function deleteUserByEmail(email: string): Promise<void> {
   await pool.query('DELETE FROM "user" WHERE email = $1', [email]);
 }
 
-const E2E_USER_EMAIL = "test+e2e@example.com";
+const E2E_USER_EMAIL = process.env.E2E_USER_EMAIL || "test+e2e@example.com";
 
 /** Create the persistent E2E test user or return the existing one. */
 export async function ensureTestUser(helpers: TestHelpers): Promise<{ id: string; email: string }> {
-  const result = await pool.query('SELECT id, email FROM "user" WHERE email = $1', [
-    E2E_USER_EMAIL,
-  ]);
+  const result = await pool.query<{ id: string; email: string }>(
+    'SELECT id, email FROM "user" WHERE email = $1',
+    [E2E_USER_EMAIL],
+  );
   if (result.rows.length > 0) {
     return result.rows[0];
   }
