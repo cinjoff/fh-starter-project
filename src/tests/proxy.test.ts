@@ -16,17 +16,13 @@ vi.mock("next/server", () => ({
 }));
 
 describe("proxy", () => {
-  const originalEnv = process.env;
-
   beforeEach(() => {
     headers.clear();
-    process.env = { ...originalEnv };
-    // Default to production
-    process.env.NODE_ENV = "production";
+    vi.stubEnv("NODE_ENV", "production");
   });
 
   afterEach(() => {
-    process.env = originalEnv;
+    vi.unstubAllEnvs();
     vi.resetModules();
   });
 
@@ -47,7 +43,7 @@ describe("proxy", () => {
   });
 
   it("omits unsafe-eval in CSP when NODE_ENV is not development", async () => {
-    process.env.NODE_ENV = "production";
+    vi.stubEnv("NODE_ENV", "production");
     const { proxy } = await import("@/proxy");
     const fakeRequest = {} as Parameters<typeof proxy>[0];
 
@@ -58,7 +54,7 @@ describe("proxy", () => {
   });
 
   it("includes unsafe-eval in CSP when NODE_ENV is development", async () => {
-    process.env.NODE_ENV = "development";
+    vi.stubEnv("NODE_ENV", "development");
     vi.resetModules();
     const { proxy } = await import("@/proxy");
     const fakeRequest = {} as Parameters<typeof proxy>[0];
@@ -70,7 +66,7 @@ describe("proxy", () => {
   });
 
   it("includes Sentry DSN origin in connect-src when set", async () => {
-    process.env.NEXT_PUBLIC_SENTRY_DSN = "https://key@o123.ingest.sentry.io/456";
+    vi.stubEnv("NEXT_PUBLIC_SENTRY_DSN", "https://key@o123.ingest.sentry.io/456");
     vi.resetModules();
     const { proxy } = await import("@/proxy");
     const fakeRequest = {} as Parameters<typeof proxy>[0];
@@ -82,7 +78,7 @@ describe("proxy", () => {
   });
 
   it("does not include extra connect-src origins when no Sentry DSN", async () => {
-    delete process.env.NEXT_PUBLIC_SENTRY_DSN;
+    vi.stubEnv("NEXT_PUBLIC_SENTRY_DSN", "");
     vi.resetModules();
     const { proxy } = await import("@/proxy");
     const fakeRequest = {} as Parameters<typeof proxy>[0];
