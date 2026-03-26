@@ -1,5 +1,6 @@
 "use client";
 
+import * as Sentry from "@sentry/nextjs";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
@@ -48,6 +49,7 @@ export function LoginForm() {
           return;
         }
 
+        Sentry.addBreadcrumb({ category: "auth", message: "User signed in", level: "info" });
         router.push(redirectTo);
       } else {
         const { error: signUpError } = await authClient.signUp.email({
@@ -66,6 +68,7 @@ export function LoginForm() {
           return;
         }
 
+        Sentry.addBreadcrumb({ category: "auth", message: "User signed up", level: "info" });
         setShowVerification(true);
       }
     } catch {
