@@ -5,7 +5,7 @@ const techStack = [
   { name: "Next.js 16", description: "React framework" },
   { name: "Tailwind v4", description: "Utility-first CSS" },
   { name: "Shadcn/ui", description: "Component library" },
-  { name: "Supabase", description: "Auth & database" },
+  { name: "Better Auth", description: "Authentication" },
   { name: "Sentry", description: "Error tracking" },
   { name: "TypeScript", description: "Type safety" },
 ];
