@@ -1,6 +1,17 @@
 import { Resend } from "resend";
+import { env } from "./env";
 
-const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
+const resend = env.RESEND_API_KEY ? new Resend(env.RESEND_API_KEY) : null;
+
+/** Escape HTML special characters to prevent XSS in email templates. */
+export function escapeHtml(str: string): string {
+  return str
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
 
 /** Fire-and-forget email send. Logs to console in development when no RESEND_API_KEY. */
 export function sendEmail({
@@ -22,7 +33,7 @@ export function sendEmail({
 
   return resend.emails
     .send({
-      from: "FH Starter <noreply@fh-starter.com>",
+      from: env.EMAIL_FROM,
       to,
       subject,
       html,
