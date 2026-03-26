@@ -1,3 +1,4 @@
+import { deleteUserByEmail } from "./auth-test-helpers";
 import { expect, test } from "./fixtures";
 
 // ---------------------------------------------------------------------------
@@ -59,5 +60,60 @@ test.describe("Auth flows — unauthenticated redirect", () => {
   test("unauthenticated user visiting /dashboard is redirected to /login", async ({ page }) => {
     await page.goto("/dashboard");
     await expect(page).toHaveURL(/\/login/);
+  });
+});
+
+test.describe("Auth flows — sign up", () => {
+  test("sign up shows verification prompt", async ({ page }) => {
+    await page.goto("/login");
+    await page.getByRole("button", { name: /sign up/i }).click();
+
+    const email = `test+e2e-signup-${Date.now()}@example.com`;
+    await page.getByLabel("Name").fill("E2E Signup User");
+    await page.getByLabel("Email address").fill(email);
+    await page.getByLabel("Password").fill("TestPassword123!");
+    await page.getByRole("button", { name: "Sign Up" }).click();
+
+    const prompt = page.getByTestId("verification-prompt");
+    await expect(prompt).toBeVisible({ timeout: 10_000 });
+    await expect(prompt.getByRole("status")).toHaveText(
+      "Check your email to verify your account before signing in.",
+    );
+
+    // Clean up user created via the UI
+    await deleteUserByEmail(email);
+  });
+});
+
+test.describe("Auth flows — sign in", () => {
+  test("authenticated user can access /dashboard", async ({ authedPage }) => {
+    await authedPage.goto("/dashboard");
+    await expect(authedPage).toHaveURL(/\/dashboard/, { timeout: 10_000 });
+  });
+});
+
+test.describe("Auth flows — sign out", () => {
+  test("sign out redirects to /login", async ({ authedPage }) => {
+    await authedPage.goto("/dashboard");
+    await expect(authedPage).toHaveURL(/\/dashboard/);
+
+    await authedPage.getByRole("button", { name: /sign out/i }).click();
+
+    await expect(authedPage).toHaveURL(/\/login/, { timeout: 10_000 });
+  });
+});
+
+test.describe("Auth flows — forgot password", () => {
+  test("forgot password shows success message", async ({ page }) => {
+    await page.goto("/forgot-password");
+
+    await page.getByLabel("Email address").fill(`test+e2e-forgot-${Date.now()}@example.com`);
+    await page.getByRole("button", { name: "Send reset link" }).click();
+
+    const success = page.getByTestId("forgot-password-success");
+    await expect(success).toBeVisible({ timeout: 10_000 });
+    await expect(success.getByRole("status")).toHaveText(
+      "If an account exists with that email, you'll receive a reset link.",
+    );
   });
 });
