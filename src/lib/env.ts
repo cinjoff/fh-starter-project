@@ -4,13 +4,13 @@ import { z } from "zod";
 
 export const env = createEnv({
   server: {
-    BETTER_AUTH_SECRET: z.string().min(32),
-    DATABASE_URL: z.string(),
+    BETTER_AUTH_SECRET: z.string().min(32).optional(),
+    DATABASE_URL: z.string().optional(),
     BETTER_AUTH_URL: z.string().optional().default("http://localhost:3000"),
     RESEND_API_KEY: z.string().optional(),
     EMAIL_FROM: z.string().optional().default("FH Starter <noreply@fh-starter.com>"),
     ENABLE_ORGANIZATIONS: z
-      .enum(["true", "1"])
+      .string()
       .optional()
       .transform((v) => v === "true" || v === "1"),
     SENTRY_LOCAL: z.string().optional(),
@@ -20,7 +20,7 @@ export const env = createEnv({
     NEXT_PUBLIC_SENTRY_DSN: z.string().optional(),
     NEXT_PUBLIC_SENTRY_LOCAL: z.string().optional(),
     NEXT_PUBLIC_ENABLE_ORGANIZATIONS: z
-      .enum(["true", "1"])
+      .string()
       .optional()
       .transform((v) => v === "true" || v === "1"),
   },

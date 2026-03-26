@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth";
 import { SignOutButton } from "./sign-out-button";
 
 export default async function DashboardPage() {
-  const session = await auth.api.getSession({ headers: await headers() });
+  const session = auth ? await auth.api.getSession({ headers: await headers() }) : null;
 
   return (
     <div className="flex min-h-screen items-center justify-center">

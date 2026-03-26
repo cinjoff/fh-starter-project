@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { authClient } from "@/lib/auth-client";
 
 type InviteStatus = "loading" | "accepting" | "success" | "error";
@@ -12,6 +12,7 @@ export default function AcceptInvitePage() {
   const { data: session, isPending: sessionLoading } = authClient.useSession();
   const [status, setStatus] = useState<InviteStatus>("loading");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const accepted = useRef(false);
 
   const invitationId = params.id;
 
@@ -22,6 +23,9 @@ export default function AcceptInvitePage() {
       router.replace(`/login?redirect=/accept-invite/${invitationId}`);
       return;
     }
+
+    if (accepted.current) return;
+    accepted.current = true;
 
     setStatus("accepting");
 

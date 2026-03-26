@@ -3,12 +3,12 @@ import { z } from "zod";
 
 // Standalone schema matching the ENABLE_ORGANIZATIONS transform in env.ts
 const enableOrganizationsSchema = z
-  .enum(["true", "1"])
+  .string()
   .optional()
   .transform((v) => v === "true" || v === "1");
 
 // Standalone schema matching BETTER_AUTH_SECRET in env.ts
-const betterAuthSecretSchema = z.string().min(32);
+const betterAuthSecretSchema = z.string().min(32).optional();
 
 describe("ENABLE_ORGANIZATIONS Zod transform", () => {
   it('transforms "true" to true', () => {
@@ -27,12 +27,19 @@ describe("ENABLE_ORGANIZATIONS Zod transform", () => {
     expect(result).toBe(false);
   });
 
-  it('rejects "false" as invalid', () => {
-    expect(() => enableOrganizationsSchema.parse("false")).toThrow();
+  it('transforms "false" to false without throwing', () => {
+    const result = enableOrganizationsSchema.parse("false");
+    expect(result).toBe(false);
   });
 
-  it("rejects empty string as invalid", () => {
-    expect(() => enableOrganizationsSchema.parse("")).toThrow();
+  it('transforms "0" to false without throwing', () => {
+    const result = enableOrganizationsSchema.parse("0");
+    expect(result).toBe(false);
+  });
+
+  it("transforms empty string to false without throwing", () => {
+    const result = enableOrganizationsSchema.parse("");
+    expect(result).toBe(false);
   });
 });
 
@@ -48,5 +55,9 @@ describe("BETTER_AUTH_SECRET min length validation", () => {
 
   it("rejects an empty string", () => {
     expect(() => betterAuthSecretSchema.parse("")).toThrow();
+  });
+
+  it("accepts undefined (auth is optional)", () => {
+    expect(betterAuthSecretSchema.parse(undefined)).toBeUndefined();
   });
 });

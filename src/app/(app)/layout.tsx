@@ -1,9 +1,13 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
+import { auth, authEnabled } from "@/lib/auth";
 import { env } from "@/lib/env";
 
 export default async function ProtectedLayout({ children }: { children: React.ReactNode }) {
+  if (!authEnabled || !auth) {
+    redirect("/");
+  }
+
   const session = await auth.api.getSession({ headers: await headers() });
 
   if (!session) {

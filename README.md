@@ -55,7 +55,7 @@ The app runs without Supabase configured -- auth pages will render but skip the 
 src/
   app/
     (auth)/          Login, signup, forgot/update password
-    (protected)/     Dashboard and authenticated pages
+    (app)/           Dashboard and authenticated pages
     api/             API routes (Sentry local, auth callback)
   components/        Shared React components (ui/ for shadcn)
   lib/               Utilities -- Supabase clients, env config, Sentry local store
@@ -64,7 +64,7 @@ e2e/                 Playwright E2E tests
 supabase/            Database migrations and seed data
 ```
 
-**Route groups** keep concerns separated: `(auth)` handles the login flow, `(protected)` enforces authentication at the layout level. No scattered auth checks across pages.
+**Route groups** keep concerns separated: `(auth)` handles the login flow, `(app)` enforces authentication at the layout level. No scattered auth checks across pages.
 
 ## Commands
 
