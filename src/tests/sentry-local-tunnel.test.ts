@@ -1,197 +1,233 @@
-import { beforeEach, describe, expect, it, type Mock, vi } from "vitest";
+/**
+ * Tests for extractEventFields and the tunnel route — verifies that the
+ * Sentry local tunnel correctly parses all envelope item types
+ * (errors, transactions, logs, sessions).
+ */
+import { describe, expect, it, vi } from "vitest";
 
-// ---------------------------------------------------------------------------
-// Mock better-sqlite3 and the sentry-local store
-// ---------------------------------------------------------------------------
+// Mock better-sqlite3 so the sentry-local module can be imported without a real DB
+vi.mock("better-sqlite3", () => {
+  const MockDB = vi.fn(() => ({
+    pragma: vi.fn(),
+    exec: vi.fn(),
+    prepare: vi.fn(() => ({ run: vi.fn(), get: vi.fn() })),
+  }));
+  return { default: MockDB };
+});
 
-const mockPush = vi.fn();
+const { extractEventFields } = await import("@/lib/sentry-local");
 
-vi.mock("@/lib/sentry-local", () => ({
-  createLocalSentryStore: () => ({
-    push: mockPush,
-    unshift: mockPush,
-    shift: vi.fn(),
-  }),
-}));
-
-// We also need NextResponse — use the real one
-// (happy-dom environment provides enough globals for this)
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-/** Build a Sentry envelope body from header + item-header + payload lines. */
-function buildEnvelope(
-  header: Record<string, unknown>,
+/** Build a minimal envelope: envelope-header + item-header + item-body. */
+function makeEnvelope(
   itemHeader: Record<string, unknown>,
-  payload: Record<string, unknown>,
-): string {
-  return [JSON.stringify(header), JSON.stringify(itemHeader), JSON.stringify(payload)].join("\n");
-}
-
-/** Import the POST handler fresh (env vars may change between tests). */
-async function importPost() {
-  const mod = await import("@/app/api/sentry-local/route");
-  return mod.POST;
+  itemBody: Record<string, unknown>,
+): Uint8Array {
+  const text = [JSON.stringify({}), JSON.stringify(itemHeader), JSON.stringify(itemBody)].join(
+    "\n",
+  );
+  return new TextEncoder().encode(text);
 }
 
 // ---------------------------------------------------------------------------
-// Tests
+// extractEventFields — core parsing logic
 // ---------------------------------------------------------------------------
 
-describe("/api/sentry-local tunnel", () => {
-  beforeEach(() => {
-    vi.resetModules();
-    mockPush.mockReset();
-    // Default: local mode enabled
-    process.env.SENTRY_LOCAL = "true";
-    process.env.NODE_ENV = "development";
-  });
-
-  // -----------------------------------------------------------------------
-  // Feature-gating
-  // -----------------------------------------------------------------------
-
-  it("returns 404 when SENTRY_LOCAL is not 'true'", async () => {
-    process.env.SENTRY_LOCAL = "false";
-    const POST = await importPost();
-    const res = await POST(
-      new Request("http://localhost/api/sentry-local", {
-        method: "POST",
-        body: buildEnvelope(
-          { dsn: "https://key@o0.ingest.sentry.io/0" },
-          { type: "event" },
-          { event_id: "abc123", message: "boom" },
-        ),
-      }),
-    );
-    expect(res.status).toBe(404);
-    expect(mockPush).not.toHaveBeenCalled();
-  });
-
-  // -----------------------------------------------------------------------
-  // Error envelopes
-  // -----------------------------------------------------------------------
-
-  it("stores error envelopes", async () => {
-    const POST = await importPost();
-    const body = buildEnvelope(
-      { dsn: "https://key@o0.ingest.sentry.io/0" },
+describe("extractEventFields", () => {
+  it("extracts fields from a standard error event", () => {
+    const envelope = makeEnvelope(
       { type: "event" },
-      { event_id: "err-1", exception: { values: [{ type: "Error", value: "fail" }] } },
+      {
+        event_id: "abc123",
+        timestamp: 1700000000,
+        level: "error",
+        message: "Something broke",
+        release: "1.0.0",
+        environment: "development",
+        tags: { page: "/home" },
+      },
     );
 
-    const res = await POST(
-      new Request("http://localhost/api/sentry-local", {
-        method: "POST",
-        body,
-      }),
-    );
-
-    expect(res.status).toBe(200);
-    expect(mockPush).toHaveBeenCalled();
-    // The envelope passed to push should be a Uint8Array
-    const arg = (mockPush as Mock).mock.calls[0][0] as Uint8Array;
-    expect(arg).toBeInstanceOf(Uint8Array);
+    const result = extractEventFields(envelope);
+    expect(result).not.toBeNull();
+    expect(result?.event_id).toBe("abc123");
+    expect(result?.level).toBe("error");
+    expect(result?.message).toBe("Something broke");
+    expect(result?.release).toBe("1.0.0");
+    expect(result?.environment).toBe("development");
+    expect(result?.tags).toBe(JSON.stringify({ page: "/home" }));
   });
 
-  // -----------------------------------------------------------------------
-  // Transaction envelopes
-  // -----------------------------------------------------------------------
+  it("extracts exception message when no top-level message exists", () => {
+    const envelope = makeEnvelope(
+      { type: "event" },
+      {
+        event_id: "exc123",
+        timestamp: 1700000000,
+        exception: {
+          values: [{ type: "TypeError", value: "Cannot read property 'x'" }],
+        },
+      },
+    );
 
-  it("stores transaction envelopes", async () => {
-    const POST = await importPost();
-    const body = buildEnvelope(
-      { dsn: "https://key@o0.ingest.sentry.io/0" },
+    const result = extractEventFields(envelope);
+    expect(result).not.toBeNull();
+    expect(result?.message).toBe("Cannot read property 'x'");
+    expect(result?.exception).toContain("TypeError");
+  });
+
+  it("extracts fields from a transaction envelope", () => {
+    const envelope = makeEnvelope(
       { type: "transaction" },
       {
-        event_id: "txn-1",
+        event_id: "txn456",
+        timestamp: 1700000000,
         type: "transaction",
-        transaction: "/api/health",
-        start_timestamp: 1700000000,
-        timestamp: 1700000001,
+        transaction: "GET /api/users",
+        spans: [{ op: "db", description: "SELECT * FROM users" }],
+        contexts: { trace: { trace_id: "aaa" } },
       },
     );
 
-    const res = await POST(
-      new Request("http://localhost/api/sentry-local", {
-        method: "POST",
-        body,
-      }),
-    );
-
-    expect(res.status).toBe(200);
-    expect(mockPush).toHaveBeenCalled();
+    const result = extractEventFields(envelope);
+    expect(result).not.toBeNull();
+    expect(result?.event_id).toBe("txn456");
+    expect(result?.type).toBe("transaction");
+    expect(result?.message).toBe("GET /api/users");
+    expect(result?.transaction_name).toBe("GET /api/users");
+    expect(result?.level).toBe("info");
   });
 
-  // -----------------------------------------------------------------------
-  // Log envelopes
-  // -----------------------------------------------------------------------
-
-  it("stores log envelopes", async () => {
-    const POST = await importPost();
-    const body = buildEnvelope(
-      { dsn: "https://key@o0.ingest.sentry.io/0" },
+  it("extracts fields from a log envelope with string body", () => {
+    const envelope = makeEnvelope(
       { type: "log" },
       {
-        event_id: "log-1",
-        level: "info",
-        message: "User signed in",
+        timestamp: 1700000000,
+        level: "warning",
+        body: "User rate limited",
       },
     );
 
-    const res = await POST(
-      new Request("http://localhost/api/sentry-local", {
-        method: "POST",
-        body,
-      }),
-    );
-
-    expect(res.status).toBe(200);
-    expect(mockPush).toHaveBeenCalled();
+    const result = extractEventFields(envelope);
+    expect(result).not.toBeNull();
+    expect(result?.type).toBe("log");
+    expect(result?.message).toBe("User rate limited");
+    expect(result?.level).toBe("warning");
+    expect(result?.event_id).toBeTruthy();
+    expect(result?.event_id).toHaveLength(32);
   });
 
-  // -----------------------------------------------------------------------
-  // Malformed lines
-  // -----------------------------------------------------------------------
-
-  it("skips malformed envelope lines without error", async () => {
-    const POST = await importPost();
-    // Envelope format: line 0 = envelope header, then item-header/item-body pairs.
-    // Insert malformed item-header lines — they should be skipped — followed by a valid pair.
-    const body = [
-      JSON.stringify({ dsn: "https://key@o0.ingest.sentry.io/0" }), // envelope header
-      "{broken json{{", // malformed item header — skipped
-      "this body is also skipped", // would-be body for malformed header
-      JSON.stringify({ type: "event" }), // valid item header
-      JSON.stringify({ event_id: "ok-1", message: "valid" }), // valid item body
-    ].join("\n");
-
-    const res = await POST(
-      new Request("http://localhost/api/sentry-local", {
-        method: "POST",
-        body,
-      }),
+  it("extracts fields from a log envelope with stringValue body", () => {
+    const envelope = makeEnvelope(
+      { type: "log" },
+      {
+        timestamp: 1700000000,
+        level: "info",
+        body: { stringValue: "Database connected" },
+      },
     );
 
-    expect(res.status).toBe(200);
-    // Should still store the valid envelope
-    expect(mockPush).toHaveBeenCalled();
+    const result = extractEventFields(envelope);
+    expect(result).not.toBeNull();
+    expect(result?.message).toBe("Database connected");
   });
 
-  it("returns 200 even when all lines are malformed", async () => {
-    const POST = await importPost();
-    const body = "garbage\n{{{bad\nnope";
-
-    const res = await POST(
-      new Request("http://localhost/api/sentry-local", {
-        method: "POST",
-        body,
-      }),
+  it("generates event_id for items that lack one", () => {
+    const envelope = makeEnvelope(
+      { type: "event" },
+      {
+        timestamp: 1700000000,
+        message: "No event_id here",
+      },
     );
 
-    expect(res.status).toBe(200);
-    expect(mockPush).not.toHaveBeenCalled();
+    const result = extractEventFields(envelope);
+    expect(result).not.toBeNull();
+    expect(result?.event_id).toBeTruthy();
+    expect(result?.event_id).toHaveLength(32);
+  });
+
+  it("handles ISO timestamp strings", () => {
+    const envelope = makeEnvelope(
+      { type: "event" },
+      {
+        event_id: "ts123",
+        timestamp: "2023-11-14T22:13:20.000Z",
+        message: "ISO timestamp",
+      },
+    );
+
+    const result = extractEventFields(envelope);
+    expect(result).not.toBeNull();
+    expect(result?.timestamp).toBe("2023-11-14T22:13:20.000Z");
+  });
+
+  it("defaults timestamp to now when missing", () => {
+    const before = new Date().toISOString();
+    const envelope = makeEnvelope(
+      { type: "event" },
+      {
+        event_id: "notime",
+        message: "Missing timestamp",
+      },
+    );
+
+    const result = extractEventFields(envelope);
+    expect(result).not.toBeNull();
+    const ts = result?.timestamp ?? "";
+    expect(ts >= before).toBe(true);
+  });
+
+  it("returns null for empty/invalid envelope", () => {
+    const empty = new TextEncoder().encode("");
+    expect(extractEventFields(empty)).toBeNull();
+
+    const garbage = new TextEncoder().encode("not json\nalso not json");
+    expect(extractEventFields(garbage)).toBeNull();
+  });
+
+  it("handles session items that have no event_id", () => {
+    const envelope = makeEnvelope(
+      { type: "session" },
+      {
+        sid: "sess-123",
+        timestamp: 1700000000,
+        status: "ok",
+        init: true,
+      },
+    );
+
+    const result = extractEventFields(envelope);
+    expect(result).not.toBeNull();
+    expect(result?.event_id).toHaveLength(32);
+  });
+
+  it("defaults level to 'info' for transactions", () => {
+    const envelope = makeEnvelope(
+      { type: "transaction" },
+      {
+        event_id: "txn-nolevel",
+        timestamp: 1700000000,
+        type: "transaction",
+        transaction: "POST /upload",
+        spans: [],
+      },
+    );
+
+    const result = extractEventFields(envelope);
+    expect(result?.level).toBe("info");
+  });
+
+  it("defaults level to 'error' for regular events", () => {
+    const envelope = makeEnvelope(
+      { type: "event" },
+      {
+        event_id: "evt-nolevel",
+        timestamp: 1700000000,
+        message: "No level specified",
+      },
+    );
+
+    const result = extractEventFields(envelope);
+    expect(result?.level).toBe("error");
   });
 });

@@ -68,45 +68,111 @@ function pruneOldEvents() {
   }
 }
 
-function extractEventFields(envelope: Uint8Array) {
+/**
+ * Extract a log message from a Sentry log item body.
+ * Log items use `body` (string or `{ stringValue }`) for the message.
+ */
+function extractLogMessage(obj: Record<string, unknown>): string | null {
+  const body = obj.body;
+  if (typeof body === "string") return body;
+  if (body && typeof body === "object" && "stringValue" in body) {
+    const sv = (body as Record<string, unknown>).stringValue;
+    if (typeof sv === "string") return sv;
+  }
+  return typeof obj.message === "string" ? obj.message : null;
+}
+
+export function extractEventFields(envelope: Uint8Array) {
   try {
     const text = new TextDecoder().decode(envelope);
     const lines = text.split("\n");
 
-    for (const line of lines) {
-      if (!line.startsWith("{")) continue;
-      try {
-        const obj = JSON.parse(line);
-        if (obj.event_id || obj.exception || obj.message) {
-          return {
-            event_id: obj.event_id || null,
-            timestamp: obj.timestamp
-              ? new Date(
-                  typeof obj.timestamp === "number" ? obj.timestamp * 1000 : obj.timestamp,
-                ).toISOString()
-              : new Date().toISOString(),
-            level: obj.level || "error",
-            type: obj.type || null,
-            message: obj.message || obj.exception?.values?.[0]?.value || null,
-            transaction_name: obj.transaction || null,
-            release: obj.release || null,
-            environment: obj.environment || null,
-            tags: obj.tags ? JSON.stringify(obj.tags) : null,
-            breadcrumbs: obj.breadcrumbs ? JSON.stringify(obj.breadcrumbs) : null,
-            exception: obj.exception ? JSON.stringify(obj.exception) : null,
-            request: obj.request ? JSON.stringify(obj.request) : null,
-            contexts: obj.contexts ? JSON.stringify(obj.contexts) : null,
-            user_data: obj.user ? JSON.stringify(obj.user) : null,
-          };
-        }
-      } catch {
-        // not valid JSON, skip
-      }
+    // Envelope format (positional):
+    //   line 0: envelope header  (skip)
+    //   line 1: item header      (contains `type`)
+    //   line 2: item body        (the payload we extract from)
+    //   line 3+: additional item-header/body pairs (we only extract the first)
+    if (lines.length < 3) return null;
+
+    // Parse item header to determine envelope type
+    let itemType: string | null = null;
+    try {
+      const header = JSON.parse(lines[1]) as Record<string, unknown>;
+      itemType = typeof header.type === "string" ? header.type : null;
+    } catch {
+      // invalid item header
     }
+
+    // Parse item body
+    const bodyLine = lines[2];
+    if (!bodyLine || !bodyLine.startsWith("{")) return null;
+
+    let obj: Record<string, unknown>;
+    try {
+      obj = JSON.parse(bodyLine) as Record<string, unknown>;
+    } catch {
+      return null;
+    }
+
+    const isTransaction = itemType === "transaction" || obj.type === "transaction";
+    const isLog = itemType === "log";
+
+    const eventId =
+      typeof obj.event_id === "string" ? obj.event_id : crypto.randomUUID().replace(/-/g, "");
+
+    let message: string | null = null;
+    if (isLog) {
+      message = extractLogMessage(obj);
+    } else if (isTransaction) {
+      message = typeof obj.transaction === "string" ? obj.transaction : null;
+    } else {
+      message =
+        (typeof obj.message === "string" ? obj.message : null) ||
+        extractExceptionValue(obj) ||
+        null;
+    }
+
+    return {
+      event_id: eventId,
+      timestamp: obj.timestamp
+        ? new Date(
+            typeof obj.timestamp === "number"
+              ? (obj.timestamp as number) * 1000
+              : (obj.timestamp as string),
+          ).toISOString()
+        : new Date().toISOString(),
+      level: typeof obj.level === "string" ? obj.level : isTransaction ? "info" : "error",
+      type: isTransaction
+        ? "transaction"
+        : isLog
+          ? "log"
+          : typeof obj.type === "string"
+            ? obj.type
+            : null,
+      message,
+      transaction_name: typeof obj.transaction === "string" ? obj.transaction : null,
+      release: typeof obj.release === "string" ? obj.release : null,
+      environment: typeof obj.environment === "string" ? obj.environment : null,
+      tags: obj.tags ? JSON.stringify(obj.tags) : null,
+      breadcrumbs: obj.breadcrumbs ? JSON.stringify(obj.breadcrumbs) : null,
+      exception: obj.exception ? JSON.stringify(obj.exception) : null,
+      request: obj.request ? JSON.stringify(obj.request) : null,
+      contexts: obj.contexts ? JSON.stringify(obj.contexts) : null,
+      user_data: obj.user ? JSON.stringify(obj.user) : null,
+    };
   } catch {
     // decode failed
   }
   return null;
+}
+
+/** Safely extract the first exception value from a Sentry event. */
+function extractExceptionValue(obj: Record<string, unknown>): string | null {
+  if (!obj.exception || typeof obj.exception !== "object") return null;
+  const exc = obj.exception as Record<string, unknown>;
+  if (!Array.isArray(exc.values)) return null;
+  const first = exc.values[0] as Record<string, unknown> | undefined;
+  return first && typeof first.value === "string" ? first.value : null;
 }
 
 /**
@@ -118,7 +184,7 @@ export function createLocalSentryStore() {
     push(envelope: Uint8Array) {
       try {
         const fields = extractEventFields(envelope);
-        if (fields?.event_id) {
+        if (fields) {
           const stmt = getDb().prepare(`
             INSERT OR IGNORE INTO events
               (event_id, timestamp, level, type, message, transaction_name,
