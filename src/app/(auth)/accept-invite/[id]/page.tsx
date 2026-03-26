@@ -30,7 +30,10 @@ export default function AcceptInvitePage() {
       .then(({ error }) => {
         if (error) {
           setStatus("error");
-          const message = error instanceof Error ? error.message : String(error);
+          const message =
+            (error as { message?: string }).message ??
+            (error as { statusText?: string }).statusText ??
+            "";
           const lowerMessage = message.toLowerCase();
 
           if (lowerMessage.includes("expire") || lowerMessage.includes("invalid")) {

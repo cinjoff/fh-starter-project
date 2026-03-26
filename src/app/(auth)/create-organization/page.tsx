@@ -47,7 +47,10 @@ export default function CreateOrganizationPage() {
       });
 
       if (error) {
-        const message = error instanceof Error ? error.message : String(error);
+        const message =
+          (error as { message?: string }).message ??
+          (error as { statusText?: string }).statusText ??
+          "";
         if (message.toLowerCase().includes("slug") || message.toLowerCase().includes("already")) {
           setSlugError("This slug is already taken");
           return;
