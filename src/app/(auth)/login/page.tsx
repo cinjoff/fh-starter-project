@@ -1,98 +1,234 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
 import { toast } from "sonner";
-import { SubmitButton } from "@/components/submit-button";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import type { ActionState } from "@/lib/actions/types";
-import { login, signup } from "./actions";
+import { authClient } from "@/lib/auth-client";
 
-const initialState: ActionState = { success: false };
+type Mode = "sign-in" | "sign-up";
 
-export default function LoginPage() {
-  const [loginState, loginAction] = useActionState(login, initialState);
-  const [signupState, signupAction] = useActionState(signup, initialState);
-  useEffect(() => {
-    if (loginState.message && !loginState.success) {
-      toast.error(loginState.message);
+function LoginForm() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const rawRedirect = searchParams.get("redirect") || "/";
+  const redirectTo = rawRedirect.startsWith("/") ? rawRedirect : "/";
+
+  const [mode, setMode] = useState<Mode>("sign-in");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [showVerification, setShowVerification] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+
+    try {
+      if (mode === "sign-in") {
+        const { error: signInError } = await authClient.signIn.email({
+          email,
+          password,
+          callbackURL: redirectTo,
+        });
+
+        if (signInError) {
+          if (signInError.status === 429) {
+            setError("Too many attempts. Please wait and try again.");
+          } else {
+            setError("Invalid email or password.");
+          }
+          return;
+        }
+
+        router.push(redirectTo);
+      } else {
+        const { error: signUpError } = await authClient.signUp.email({
+          name,
+          email,
+          password,
+          callbackURL: redirectTo,
+        });
+
+        if (signUpError) {
+          if (signUpError.status === 429) {
+            setError("Too many attempts. Please wait and try again.");
+          } else {
+            setError("Sign up failed. Please try again.");
+          }
+          return;
+        }
+
+        setShowVerification(true);
+      }
+    } catch {
+      toast.error("Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
     }
-  }, [loginState]);
-
-  useEffect(() => {
-    if (signupState.message && !signupState.success) {
-      toast.error(signupState.message);
-    }
-  }, [signupState]);
-
-  const errorMessage =
-    (loginState.message && !loginState.success ? loginState.message : null) ??
-    (signupState.message && !signupState.success ? signupState.message : null);
+  };
 
   return (
     <div className="flex min-h-screen items-center justify-center px-4">
       <div className="w-full max-w-sm space-y-6">
         <div className="space-y-2 text-center">
-          <h1 className="text-2xl font-bold tracking-tight">Sign in</h1>
-          <p className="text-muted-foreground text-sm">Enter your credentials to continue</p>
+          <h1 className="text-2xl font-bold tracking-tight">
+            {mode === "sign-in" ? "Sign in" : "Create account"}
+          </h1>
+          <p className="text-muted-foreground text-sm">
+            {mode === "sign-in"
+              ? "Enter your credentials to continue"
+              : "Fill in your details to get started"}
+          </p>
         </div>
 
-        <form data-testid="login-form" className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              name="email"
-              type="email"
-              placeholder="you@example.com"
-              required
-              data-testid="email-input"
-              aria-label="Email address"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              name="password"
-              type="password"
-              placeholder="••••••••"
-              required
-              minLength={6}
-              data-testid="password-input"
-              aria-label="Password"
-            />
-          </div>
-
-          {errorMessage && (
-            <p className="text-destructive text-sm" data-testid="auth-error" role="alert">
-              {errorMessage}
+        {showVerification ? (
+          <div className="space-y-4" data-testid="verification-prompt">
+            <p className="text-muted-foreground text-center text-sm" role="status">
+              Check your email to verify your account before signing in.
             </p>
-          )}
-
-          <div className="flex gap-2">
-            <SubmitButton formAction={loginAction} className="flex-1" pendingText="Signing in...">
-              Sign In
-            </SubmitButton>
-            <SubmitButton
-              formAction={signupAction}
-              variant="outline"
-              className="flex-1"
-              pendingText="Signing up..."
+            <button
+              type="button"
+              className="text-foreground underline underline-offset-4 hover:text-foreground/80 block w-full text-center text-sm"
+              onClick={() => {
+                setShowVerification(false);
+                setMode("sign-in");
+                setError(null);
+              }}
+              data-testid="back-to-signin"
             >
-              Sign Up
-            </SubmitButton>
+              Back to sign in
+            </button>
           </div>
-        </form>
+        ) : (
+          <form data-testid="login-form" className="space-y-4" onSubmit={handleSubmit}>
+            {mode === "sign-up" && (
+              <div className="space-y-2">
+                <Label htmlFor="name">Name</Label>
+                <Input
+                  id="name"
+                  name="name"
+                  type="text"
+                  placeholder="Your name"
+                  required
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  data-testid="name-input"
+                  aria-label="Name"
+                />
+              </div>
+            )}
 
-        <p className="text-muted-foreground text-center text-sm">
-          <Link href="/forgot-password" className="text-foreground underline underline-offset-4">
-            Forgot your password?
-          </Link>
-        </p>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                placeholder="you@example.com"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                data-testid="email-input"
+                aria-label="Email address"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Password</Label>
+                {mode === "sign-in" && (
+                  <Link
+                    href="/forgot-password"
+                    className="text-muted-foreground hover:text-foreground text-xs"
+                    data-testid="forgot-password-link"
+                  >
+                    Forgot password?
+                  </Link>
+                )}
+              </div>
+              <Input
+                id="password"
+                name="password"
+                type="password"
+                placeholder="••••••••"
+                required
+                minLength={8}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                data-testid="password-input"
+                aria-label="Password"
+              />
+            </div>
+
+            {error && (
+              <p className="text-destructive text-sm" data-testid="auth-error" role="alert">
+                {error}
+              </p>
+            )}
+
+            <Button type="submit" className="w-full" disabled={loading} data-testid="auth-submit">
+              {loading
+                ? mode === "sign-in"
+                  ? "Signing in..."
+                  : "Creating account..."
+                : mode === "sign-in"
+                  ? "Sign In"
+                  : "Sign Up"}
+            </Button>
+          </form>
+        )}
+
+        {!showVerification && (
+          <p className="text-muted-foreground text-center text-sm">
+            {mode === "sign-in" ? (
+              <>
+                Don&apos;t have an account?{" "}
+                <button
+                  type="button"
+                  className="text-foreground underline underline-offset-4 hover:text-foreground/80"
+                  onClick={() => {
+                    setMode("sign-up");
+                    setError(null);
+                  }}
+                  data-testid="switch-to-signup"
+                >
+                  Sign up
+                </button>
+              </>
+            ) : (
+              <>
+                Already have an account?{" "}
+                <button
+                  type="button"
+                  className="text-foreground underline underline-offset-4 hover:text-foreground/80"
+                  onClick={() => {
+                    setMode("sign-in");
+                    setError(null);
+                  }}
+                  data-testid="switch-to-signin"
+                >
+                  Sign in
+                </button>
+              </>
+            )}
+          </p>
+        )}
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
   );
 }
