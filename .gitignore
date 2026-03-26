@@ -53,5 +53,5 @@ next-env.d.ts
 blob-report/
 playwright/.cache/
 
-# agent memory
-.planning/memory/
+# planning artifacts (auto-generated)
+.planning/

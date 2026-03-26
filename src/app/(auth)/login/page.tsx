@@ -1,13 +1,12 @@
 "use client";
 
-import { useActionState, useEffect, useMemo } from "react";
+import Link from "next/link";
+import { useActionState, useEffect } from "react";
 import { toast } from "sonner";
 import { SubmitButton } from "@/components/submit-button";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { ActionState } from "@/lib/actions/types";
-import { createClient } from "@/lib/supabase/client";
 import { login, signup } from "./actions";
 
 const initialState: ActionState = { success: false };
@@ -15,8 +14,6 @@ const initialState: ActionState = { success: false };
 export default function LoginPage() {
   const [loginState, loginAction] = useActionState(login, initialState);
   const [signupState, signupAction] = useActionState(signup, initialState);
-  const hasOAuth = useMemo(() => createClient() !== null, []);
-
   useEffect(() => {
     if (loginState.message && !loginState.success) {
       toast.error(loginState.message);
@@ -28,18 +25,6 @@ export default function LoginPage() {
       toast.error(signupState.message);
     }
   }, [signupState]);
-
-  const handleOAuth = async (provider: "google" | "github") => {
-    const supabase = createClient();
-    if (!supabase) return;
-
-    await supabase.auth.signInWithOAuth({
-      provider,
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
-  };
 
   const errorMessage =
     (loginState.message && !loginState.success ? loginState.message : null) ??
@@ -102,39 +87,11 @@ export default function LoginPage() {
           </div>
         </form>
 
-        {hasOAuth && (
-          <div className="space-y-4">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <span className="border-border w-full border-t" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background text-muted-foreground px-2">Or continue with</span>
-              </div>
-            </div>
-
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                className="flex-1"
-                onClick={() => handleOAuth("google")}
-                aria-label="Sign in with Google"
-              >
-                Google
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="flex-1"
-                onClick={() => handleOAuth("github")}
-                aria-label="Sign in with GitHub"
-              >
-                GitHub
-              </Button>
-            </div>
-          </div>
-        )}
+        <p className="text-muted-foreground text-center text-sm">
+          <Link href="/forgot-password" className="text-foreground underline underline-offset-4">
+            Forgot your password?
+          </Link>
+        </p>
       </div>
     </div>
   );
