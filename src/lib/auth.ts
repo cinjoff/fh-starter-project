@@ -1,6 +1,7 @@
 import { betterAuth } from "better-auth";
 import { nextCookies } from "better-auth/next-js";
-import { organization, testUtils } from "better-auth/plugins";
+import { testUtils } from "better-auth/plugins";
+import { organization } from "better-auth/plugins/organization";
 import { Pool } from "pg";
 import { sendEmail } from "./email";
 import { env } from "./env";
@@ -11,6 +12,7 @@ export const auth = betterAuth({
   secret: env.BETTER_AUTH_SECRET,
   baseURL: env.BETTER_AUTH_URL,
   database: pool,
+  trustedOrigins: [env.BETTER_AUTH_URL],
   rateLimit: { enabled: true },
   databaseHooks: {
     session: {
@@ -36,6 +38,8 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     minPasswordLength: 8,
+    requireEmailVerification: true,
+    revokeSessionsOnPasswordReset: true,
     sendResetPassword: async ({ user, url }) => {
       void sendEmail({
         to: user.email,
