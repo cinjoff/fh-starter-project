@@ -35,7 +35,7 @@ export default function CreateOrganizationPage() {
     setSlugError(null);
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSlugError(null);
     setLoading(true);
