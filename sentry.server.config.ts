@@ -29,7 +29,7 @@ if (process.env.SENTRY_LOCAL === "true") {
   Sentry.init({
     dsn: process.env.SENTRY_DSN,
     enableLogs: true,
-    tracesSampleRate: process.env.SENTRY_LOCAL === "true" ? 1.0 : 0.1,
+    tracesSampleRate: 0.1,
     sendDefaultPii: true,
     environment: process.env.NODE_ENV,
   });
