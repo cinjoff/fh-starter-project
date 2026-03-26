@@ -1,18 +1,8 @@
-/** Next.js 16 proxy (replaces middleware.ts): refreshes Supabase sessions and applies security headers. */
-import type { NextRequest, NextResponse } from "next/server";
-import { updateSession } from "@/lib/supabase/proxy";
+/** Next.js 16 proxy (replaces middleware.ts): applies security headers. */
+import { type NextRequest, NextResponse } from "next/server";
 
 function getConnectSrcOrigins(): string[] {
   const origins: string[] = [];
-
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  if (supabaseUrl) {
-    try {
-      origins.push(new URL(supabaseUrl).origin);
-    } catch {
-      // Invalid URL — skip
-    }
-  }
 
   const sentryDsn = process.env.NEXT_PUBLIC_SENTRY_DSN;
   if (sentryDsn) {
@@ -52,7 +42,7 @@ function applySecurityHeaders(response: NextResponse): NextResponse {
 }
 
 export async function proxy(request: NextRequest) {
-  const response = await updateSession(request);
+  const response = NextResponse.next({ request });
   return applySecurityHeaders(response);
 }
 
