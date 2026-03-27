@@ -65,5 +65,8 @@ playwright/.cache/
 .planning/research/
 .planning/designs/
 
+# fallow static analysis cache
+.fallow/
+
 # local auth SQLite database
 .data/
