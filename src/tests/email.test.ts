@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { escapeHtml } from "@/lib/email";
 
 // Mock dependencies before importing sendEmail
@@ -12,6 +12,15 @@ vi.mock("resend", () => {
 
 vi.mock("@sentry/nextjs", () => ({
   captureException: vi.fn(),
+  addBreadcrumb: vi.fn(),
+  logger: {
+    trace: vi.fn(),
+    debug: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    fatal: vi.fn(),
+  },
 }));
 
 vi.mock("@/lib/env", () => ({
@@ -49,19 +58,12 @@ describe("escapeHtml", () => {
 });
 
 describe("sendEmail", () => {
-  let consoleSpy: ReturnType<typeof vi.spyOn>;
-
-  beforeEach(() => {
-    consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
-    vi.spyOn(console, "error").mockImplementation(() => {});
-  });
-
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  it("logs to console in dev mode (no RESEND_API_KEY)", async () => {
-    // env.RESEND_API_KEY is undefined, so resend client is null
+  it("logs via logger in dev mode (no RESEND_API_KEY)", async () => {
+    const Sentry = await import("@sentry/nextjs");
     const { sendEmail } = await import("@/lib/email");
 
     await sendEmail({
@@ -70,9 +72,10 @@ describe("sendEmail", () => {
       html: "<p>Hello</p>",
     });
 
-    expect(consoleSpy).toHaveBeenCalledWith("[email] (dev mode — no RESEND_API_KEY)");
-    expect(consoleSpy).toHaveBeenCalledWith("  To: user@example.com");
-    expect(consoleSpy).toHaveBeenCalledWith("  Subject: Test");
+    expect(Sentry.logger.info).toHaveBeenCalledWith("Email sent (dev mode)", {
+      to: "user@example.com",
+      subject: "Test",
+    });
   });
 
   it("resolves without error in dev mode", async () => {
@@ -103,6 +106,15 @@ describe("sendEmail", () => {
 
     vi.doMock("@sentry/nextjs", () => ({
       captureException: vi.fn(),
+      addBreadcrumb: vi.fn(),
+      logger: {
+        trace: vi.fn(),
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+        fatal: vi.fn(),
+      },
     }));
 
     vi.doMock("@/lib/env", () => ({

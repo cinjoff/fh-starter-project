@@ -1,0 +1,16 @@
+{
+  "researcher_model": "sonnet",
+  "synthesizer_model": "sonnet",
+  "roadmapper_model": "sonnet",
+  "commit_docs": true,
+  "project_exists": true,
+  "has_codebase_map": true,
+  "planning_exists": true,
+  "has_existing_code": true,
+  "has_package_file": true,
+  "is_brownfield": true,
+  "needs_codebase_map": false,
+  "has_git": true,
+  "brave_search_available": false,
+  "project_path": ".planning/PROJECT.md"
+}

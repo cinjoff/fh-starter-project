@@ -54,5 +54,19 @@ blob-report/
 playwright/.cache/
 .auth/
 
-# planning artifacts (auto-generated)
-.planning/
+# planning artifacts (session-specific, gitignored)
+.planning/PROJECT.md
+.planning/ROADMAP.md
+.planning/STATE.md
+.planning/REQUIREMENTS.md
+.planning/DECISIONS.md
+.planning/DESIGN.md
+.planning/phases/
+.planning/research/
+.planning/designs/
+
+# fallow static analysis cache
+.fallow/
+
+# local auth SQLite database
+.data/

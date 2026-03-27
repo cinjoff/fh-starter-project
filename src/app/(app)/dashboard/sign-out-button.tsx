@@ -1,5 +1,6 @@
 "use client";
 
+import * as Sentry from "@sentry/nextjs";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,8 @@ export function SignOutButton() {
   const handleSignOut = async () => {
     try {
       await authClient.signOut();
+      Sentry.addBreadcrumb({ category: "auth", message: "User signed out", level: "info" });
+      Sentry.setUser(null);
       router.push("/login");
     } catch {
       toast.error("Sign out failed. Please try again.");

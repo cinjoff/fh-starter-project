@@ -20,7 +20,17 @@ if (process.env.SENTRY_LOCAL === "true") {
       createStore: createLocalSentryStore,
       shouldStore: () => true,
     } as Record<string, unknown>,
+    enableLogs: true,
+    tracesSampleRate: 1.0,
+    sendDefaultPii: true,
+    environment: process.env.NODE_ENV,
   });
 } else if (process.env.SENTRY_DSN) {
-  Sentry.init({ dsn: process.env.SENTRY_DSN });
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    enableLogs: true,
+    tracesSampleRate: 0.1,
+    sendDefaultPii: true,
+    environment: process.env.NODE_ENV,
+  });
 }

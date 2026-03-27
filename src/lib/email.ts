@@ -1,6 +1,7 @@
 import * as Sentry from "@sentry/nextjs";
 import { Resend } from "resend";
 import { env } from "./env";
+import { logger } from "./logger";
 
 const resend = env.RESEND_API_KEY ? new Resend(env.RESEND_API_KEY) : null;
 
@@ -25,10 +26,7 @@ export function sendEmail({
   html: string;
 }): Promise<void> {
   if (!resend) {
-    console.log("[email] (dev mode — no RESEND_API_KEY)");
-    console.log(`  To: ${to}`);
-    console.log(`  Subject: ${subject}`);
-    console.log(`  Body: ${html}`);
+    logger.info("Email sent (dev mode)", { to, subject });
     return Promise.resolve();
   }
 
@@ -41,12 +39,12 @@ export function sendEmail({
     })
     .then((result) => {
       if (result.error) {
-        console.error("[email] Resend error:", result.error);
+        logger.error("Email Resend error", { to, subject });
         Sentry.captureException(result.error);
       }
     })
     .catch((err: unknown) => {
-      console.error("[email] Failed to send:", err);
+      logger.error("Email send failed", { to, subject });
       Sentry.captureException(err);
     });
 }

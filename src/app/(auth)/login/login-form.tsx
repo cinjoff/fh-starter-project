@@ -1,5 +1,6 @@
 "use client";
 
+import * as Sentry from "@sentry/nextjs";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
@@ -11,7 +12,7 @@ import { authClient } from "@/lib/auth-client";
 
 type Mode = "sign-in" | "sign-up";
 
-export function LoginForm() {
+export function LoginForm({ localAuthMode = false }: { localAuthMode?: boolean }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const rawRedirect = searchParams.get("redirect") || "/";
@@ -48,6 +49,7 @@ export function LoginForm() {
           return;
         }
 
+        Sentry.addBreadcrumb({ category: "auth", message: "User signed in", level: "info" });
         router.push(redirectTo);
       } else {
         const { error: signUpError } = await authClient.signUp.email({
@@ -66,7 +68,12 @@ export function LoginForm() {
           return;
         }
 
-        setShowVerification(true);
+        Sentry.addBreadcrumb({ category: "auth", message: "User signed up", level: "info" });
+        if (localAuthMode) {
+          router.push(redirectTo);
+        } else {
+          setShowVerification(true);
+        }
       }
     } catch {
       toast.error("Something went wrong. Please try again.");
@@ -78,6 +85,15 @@ export function LoginForm() {
   return (
     <div className="flex min-h-screen items-center justify-center px-4">
       <div className="w-full max-w-sm space-y-6">
+        {localAuthMode && (
+          <div
+            data-testid="local-auth-banner"
+            className="rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-200"
+          >
+            Running in local auth mode. Set DATABASE_URL and RESEND_API_KEY in .env.local for
+            production setup.
+          </div>
+        )}
         <div className="space-y-2 text-center">
           <h1 className="text-2xl font-bold tracking-tight">
             {mode === "sign-in" ? "Sign in" : "Create account"}

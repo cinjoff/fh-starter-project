@@ -1,28 +1,52 @@
+import { mkdirSync } from "node:fs";
+import path from "node:path";
 import { betterAuth } from "better-auth";
 import { nextCookies } from "better-auth/next-js";
 import { testUtils } from "better-auth/plugins";
 import { organization } from "better-auth/plugins/organization";
+import Database from "better-sqlite3";
 import { Pool } from "pg";
 import { escapeHtml, sendEmail } from "./email";
 import { env } from "./env";
 
-/** Whether auth is configured (DATABASE_URL and BETTER_AUTH_SECRET are set). */
-export const authEnabled = Boolean(env.DATABASE_URL && env.BETTER_AUTH_SECRET);
+const LOCAL_DEV_SECRET = "local-dev-secret-not-for-production!!";
+
+/** True when using SQLite fallback instead of Postgres. */
+export let localAuthMode = false;
 
 function createAuth() {
-  if (!env.DATABASE_URL || !env.BETTER_AUTH_SECRET) {
+  const isProduction = process.env.NODE_ENV === "production";
+
+  if (isProduction && (!env.DATABASE_URL || !env.BETTER_AUTH_SECRET)) {
     return null;
   }
 
-  const pool = new Pool({ connectionString: env.DATABASE_URL });
+  let database: Pool | Database.Database;
+  let secret: string;
 
-  return betterAuth({
-    secret: env.BETTER_AUTH_SECRET,
+  if (env.DATABASE_URL && env.BETTER_AUTH_SECRET) {
+    database = new Pool({ connectionString: env.DATABASE_URL });
+    secret = env.BETTER_AUTH_SECRET;
+  } else if (!isProduction) {
+    const dataDir = path.join(process.cwd(), ".data");
+    mkdirSync(dataDir, { recursive: true });
+    database = new Database(path.join(dataDir, "local-auth.db"));
+    secret = LOCAL_DEV_SECRET;
+    localAuthMode = true;
+  } else {
+    return null;
+  }
+
+  const pool = database instanceof Pool ? database : null;
+  const hasResendKey = Boolean(env.RESEND_API_KEY);
+
+  const instance = betterAuth({
+    secret,
     baseURL: env.BETTER_AUTH_URL,
-    database: pool,
+    database,
     trustedOrigins: [env.BETTER_AUTH_URL],
     rateLimit: { enabled: true },
-    ...(env.ENABLE_ORGANIZATIONS
+    ...(env.ENABLE_ORGANIZATIONS && pool
       ? {
           databaseHooks: {
             session: {
@@ -55,7 +79,7 @@ function createAuth() {
     emailAndPassword: {
       enabled: true,
       minPasswordLength: 8,
-      requireEmailVerification: true,
+      requireEmailVerification: hasResendKey,
       revokeSessionsOnPasswordReset: true,
       sendResetPassword: async ({ user, url }) => {
         const safeUrl = escapeHtml(url);
@@ -67,7 +91,7 @@ function createAuth() {
       },
     },
     emailVerification: {
-      sendOnSignUp: true,
+      sendOnSignUp: hasResendKey,
       sendVerificationEmail: async ({ user, url }) => {
         const safeUrl = escapeHtml(url);
         await sendEmail({
@@ -104,8 +128,22 @@ function createAuth() {
       nextCookies(), // must be last
     ],
   });
+
+  // Auto-migrate SQLite database in local dev mode
+  if (localAuthMode) {
+    instance.$context
+      .then((ctx) => ctx.runMigrations())
+      .catch(() => {
+        // Migration may fail on first import during build; tables will be created on next startup
+      });
+  }
+
+  return instance;
 }
 
 export const auth = createAuth();
+
+/** Whether auth is configured and available. */
+export const authEnabled = auth !== null;
 
 export type Session = NonNullable<typeof auth> extends { $Infer: { Session: infer S } } ? S : never;
