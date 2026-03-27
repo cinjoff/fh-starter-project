@@ -1,16 +1,36 @@
 {
-  "researcher_model": "sonnet",
-  "synthesizer_model": "sonnet",
-  "roadmapper_model": "sonnet",
+  "model_profile": "quality",
   "commit_docs": true,
-  "project_exists": true,
+  "search_gitignored": false,
+  "branching_strategy": "none",
+  "phase_branch_template": "gsd/phase-{phase}-{slug}",
+  "milestone_branch_template": "gsd/{milestone}-{slug}",
+  "workflow": {
+    "research": false,
+    "plan_check": true,
+    "verifier": true,
+    "nyquist_validation": true,
+    "mode": "yolo",
+    "depth": "standard",
+    "auto_advance": true
+  },
+  "parallelization": true,
+  "brave_search": false,
+  "plan_limits": {
+    "tasks_per_plan": [4, 6],
+    "files_per_plan": [8, 15],
+    "words_per_plan": 2500,
+    "context_target": 60
+  },
+  "git": {
+    "branching_strategy": "none"
+  },
+  "phases": {
+    "target_count": "5-8",
+    "plans_per_phase": "3-5",
+    "tasks_per_plan": "2-3"
+  },
+  "project_path": ".planning/PROJECT.md",
   "has_codebase_map": true,
-  "planning_exists": true,
-  "has_existing_code": true,
-  "has_package_file": true,
-  "is_brownfield": true,
-  "needs_codebase_map": false,
-  "has_git": true,
-  "brave_search_available": false,
-  "project_path": ".planning/PROJECT.md"
+  "is_brownfield": true
 }
