@@ -42,11 +42,29 @@ pnpm install
 
 # Set up your environment
 cp .env.example .env.local
-# Fill in DATABASE_URL, BETTER_AUTH_SECRET, etc.
+```
 
-# Start developing
+### Option A: Quick start (no Supabase)
+
+Leave `DATABASE_URL` and `BETTER_AUTH_SECRET` blank in `.env.local`. The app will use a local SQLite database (stored in `.data/local-auth.db`) with a dev-only auth secret. This is the fastest way to start building — no accounts or external services needed.
+
+```bash
 pnpm dev
 ```
+
+### Option B: Full Supabase setup
+
+1. Create a project at [supabase.com](https://supabase.com) (or use `supabase init` + `supabase start` for local Supabase)
+2. Link your project: `supabase link --project-ref YOUR_PROJECT_REF`
+3. Get your connection string from **Dashboard → Settings → Database → Connection string → Transaction pooler** (port 6543)
+4. Fill in `.env.local`:
+   ```
+   DATABASE_URL=postgresql://postgres.YOUR_REF:YOUR_PASSWORD@aws-N-REGION.pooler.supabase.com:6543/postgres
+   BETTER_AUTH_SECRET=<run: openssl rand -base64 32>
+   ```
+   Note: copy the pooler URL exactly from the dashboard — the region prefix (`aws-0`, `aws-1`, etc.) varies by project.
+5. Run migrations: `supabase db push`
+6. Start the dev server: `pnpm dev`
 
 ## Using with fhhs-skills
 
