@@ -25,16 +25,11 @@ export const env = createEnv({
       .string()
       .optional()
       .transform((v) => v === "true" || v === "1"),
-    NEXT_PUBLIC_GOOGLE_AUTH_ENABLED: z
-      .string()
-      .optional()
-      .transform((v) => v === "true" || v === "1"),
   },
   experimental__runtimeEnv: {
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
     NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN,
     NEXT_PUBLIC_SENTRY_LOCAL: process.env.NEXT_PUBLIC_SENTRY_LOCAL,
     NEXT_PUBLIC_ENABLE_ORGANIZATIONS: process.env.NEXT_PUBLIC_ENABLE_ORGANIZATIONS,
-    NEXT_PUBLIC_GOOGLE_AUTH_ENABLED: process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED,
   },
 });

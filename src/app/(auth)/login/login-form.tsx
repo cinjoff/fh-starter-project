@@ -24,12 +24,19 @@ export function LoginForm({
   const rawRedirect = searchParams.get("redirect") || "/";
   const redirectTo =
     rawRedirect.startsWith("/") && !rawRedirect.startsWith("//") ? rawRedirect : "/";
+  const oauthError = searchParams.get("error");
 
   const [mode, setMode] = useState<Mode>("sign-in");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(
+    oauthError === "access_denied"
+      ? "Google sign-in was cancelled."
+      : oauthError
+        ? "Google sign-in failed. Please try again."
+        : null,
+  );
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [showVerification, setShowVerification] = useState(false);
@@ -104,6 +111,7 @@ export function LoginForm({
       });
     } catch {
       setError("Google sign-in failed. Please try again.");
+    } finally {
       setGoogleLoading(false);
     }
   };
