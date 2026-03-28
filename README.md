@@ -8,11 +8,17 @@ Skip the boilerplate. Start building. This template ships with authentication, a
 
 **Authentication** — Better Auth with email/password login, signup, password reset, and protected routes. Auth pages use client-side forms with Zod validation, toast notifications for errors, and a guarded layout that redirects unauthenticated users.
 
-**Database** — Supabase (Postgres) with migrations tracked in `supabase/migrations/`. Environment variables are validated at build time through `t3-env` + Zod, so you'll know about missing config before your users do.
+**Organizations** — Always-on multi-tenancy. Every user belongs to at least one organization. An org switcher component lets users switch between organizations. API routes use `withOrgAuth(minRole, handler)` for role-based access control with `"owner"`, `"admin"`, and `"member"` roles.
+
+**Database** — Supabase (Postgres) with migrations tracked in `supabase/migrations/`. Falls back to SQLite for zero-config local development. Environment variables are validated at build time through `t3-env` + Zod, so you'll know about missing config before your users do.
+
+**API patterns** — `withAuth` and `withOrgAuth` higher-order functions for route protection. Typed error classes (`UnauthorizedError`, `ForbiddenError`, `NotFoundError`, etc.) that serialize automatically to a consistent `ApiResponse<T>` envelope. Server actions use `ActionState` with `parseFormData` for Zod-validated form handling.
 
 **Error tracking** — Sentry integration with a local development mode. Set `SENTRY_LOCAL=true` and errors get stored in a local SQLite database instead of flying off to a remote service. Query them with `node src/lib/sentry-local-query.mjs recent`. No Sentry account needed during development.
 
-**Testing** — Vitest for unit/integration tests, Playwright for E2E. Both are configured and have working examples. The CI pipeline runs lint, typecheck, and tests on every push and PR.
+**Testing** — Vitest for unit/integration tests with a `TestFactory` for consistent test data, Playwright for E2E with Page Object Models. Both are configured and have working examples. The CI pipeline runs lint, typecheck, and tests on every push and PR.
+
+**Dev dashboard** — Navigate to `/dev` in development to see system health: auth mode, database status, organization counts, and recent Sentry errors. Automatically redirects to `/dashboard` in production.
 
 **Code quality** — Biome handles formatting and linting. Husky + lint-staged run checks on every commit. Conventional commit messages are enforced.
 
@@ -76,12 +82,15 @@ This template is built to work with [fhhs-skills](https://github.com/cinjoff/fhh
 src/
   app/
     (auth)/          Login, signup, forgot/reset password
-    (app)/           Dashboard and authenticated pages
+    (app)/           Dashboard and authenticated pages (auth guard in layout)
+    (dev)/           Dev-only route group — /dev health dashboard
     api/             API routes (auth, Sentry local)
   components/        Shared React components (ui/ for shadcn)
   lib/               Utilities — auth config, env validation, Sentry local store
-  tests/             Vitest tests
-e2e/                 Playwright E2E tests
+  tests/             Vitest tests (TestFactory for test data)
+e2e/
+  pages/             Page Object Models
+  *.spec.ts          E2E test specs
 supabase/            Database migrations and seed data
 ```
 

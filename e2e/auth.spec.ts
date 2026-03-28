@@ -1,5 +1,7 @@
 import { deleteUserByEmail } from "./auth-test-helpers";
 import { expect, test } from "./fixtures";
+import { DashboardPage } from "./pages/dashboard.page";
+import { LoginPage } from "./pages/login.page";
 
 // ---------------------------------------------------------------------------
 // Tests — UI rendering (no database required)
@@ -7,28 +9,19 @@ import { expect, test } from "./fixtures";
 
 test.describe("Auth pages — UI rendering", () => {
   test("login page renders sign-in form", async ({ page }) => {
-    await page.goto("/login");
-
-    await expect(page.getByRole("heading", { name: "Sign in" })).toBeVisible();
-    await expect(page.getByTestId("login-form")).toBeVisible();
-    await expect(page.getByLabel("Email address")).toBeVisible();
-    await expect(page.getByLabel("Password")).toBeVisible();
-    await expect(page.getByRole("button", { name: "Sign In" })).toBeVisible();
-    await expect(page.getByRole("button", { name: /sign up/i })).toBeVisible();
-    await expect(page.getByRole("link", { name: /forgot password/i })).toBeVisible();
+    const loginPage = new LoginPage(page);
+    await loginPage.goto();
+    await loginPage.expectSignInFormVisible();
+    await expect(loginPage.switchToSignUpButton).toBeVisible();
+    await expect(loginPage.forgotPasswordLink).toBeVisible();
   });
 
   test("login page switches to sign-up mode", async ({ page }) => {
-    await page.goto("/login");
-
-    await page.getByRole("button", { name: /sign up/i }).click();
-
-    await expect(page.getByRole("heading", { name: "Create account" })).toBeVisible();
-    await expect(page.getByLabel("Name")).toBeVisible();
-    await expect(page.getByLabel("Email address")).toBeVisible();
-    await expect(page.getByLabel("Password")).toBeVisible();
-    await expect(page.getByRole("button", { name: "Sign Up" })).toBeVisible();
-    await expect(page.getByRole("button", { name: /sign in/i })).toBeVisible();
+    const loginPage = new LoginPage(page);
+    await loginPage.goto();
+    await loginPage.switchToSignUp();
+    await loginPage.expectSignUpFormVisible();
+    await expect(loginPage.switchToSignInButton).toBeVisible();
   });
 
   test("forgot password page renders form", async ({ page }) => {
@@ -58,25 +51,22 @@ test.describe("Auth pages — UI rendering", () => {
 
 test.describe("Auth flows — unauthenticated redirect", () => {
   test("unauthenticated user visiting /dashboard is redirected to /login", async ({ page }) => {
+    const loginPage = new LoginPage(page);
     await page.goto("/dashboard");
-    await expect(page).toHaveURL(/\/login/);
+    await loginPage.expectRedirectedToLogin();
   });
 });
 
 test.describe("Auth flows — sign up", () => {
   test("sign up shows verification prompt", async ({ page }) => {
-    await page.goto("/login");
-    await page.getByRole("button", { name: /sign up/i }).click();
-
+    const loginPage = new LoginPage(page);
     const email = `test+e2e-signup-${Date.now()}@example.com`;
-    await page.getByLabel("Name").fill("E2E Signup User");
-    await page.getByLabel("Email address").fill(email);
-    await page.getByLabel("Password").fill("TestPassword123!");
-    await page.getByRole("button", { name: "Sign Up" }).click();
 
-    const prompt = page.getByTestId("verification-prompt");
-    await expect(prompt).toBeVisible({ timeout: 10_000 });
-    await expect(prompt.getByRole("status")).toHaveText(
+    await loginPage.goto();
+    await loginPage.signUp("E2E Signup User", email, "TestPassword123!");
+
+    await loginPage.expectVerificationPrompt();
+    await expect(loginPage.verificationPrompt.getByRole("status")).toHaveText(
       "Check your email to verify your account before signing in.",
     );
 
@@ -87,19 +77,21 @@ test.describe("Auth flows — sign up", () => {
 
 test.describe("Auth flows — sign in", () => {
   test("authenticated user can access /dashboard", async ({ authedPage }) => {
-    await authedPage.goto("/dashboard");
+    const dashboardPage = new DashboardPage(authedPage);
+    await dashboardPage.goto();
     await expect(authedPage).toHaveURL(/\/dashboard/, { timeout: 10_000 });
   });
 });
 
 test.describe("Auth flows — sign out", () => {
   test("sign out redirects to /login", async ({ authedPage }) => {
-    await authedPage.goto("/dashboard");
+    const dashboardPage = new DashboardPage(authedPage);
+    await dashboardPage.goto();
     await expect(authedPage).toHaveURL(/\/dashboard/);
 
-    await authedPage.getByRole("button", { name: /sign out/i }).click();
+    await dashboardPage.signOut();
 
-    await expect(authedPage).toHaveURL(/\/login/, { timeout: 10_000 });
+    await dashboardPage.expectSignedOut();
   });
 });
 

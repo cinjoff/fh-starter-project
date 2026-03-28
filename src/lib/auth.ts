@@ -1,47 +1,29 @@
-import { mkdirSync } from "node:fs";
-import path from "node:path";
 import { betterAuth } from "better-auth";
 import { nextCookies } from "better-auth/next-js";
 import { testUtils } from "better-auth/plugins";
 import { organization } from "better-auth/plugins/organization";
-import Database from "better-sqlite3";
 import { Pool } from "pg";
-import { escapeHtml, sendEmail } from "./email";
+import { sendEmail } from "./email";
+import { renderEmail } from "./email-template";
 import { env } from "./env";
+import { logger } from "./logger";
 
-const LOCAL_DEV_SECRET = "local-dev-secret-not-for-production!!";
-
-/** True when using SQLite fallback instead of Postgres. */
-export let localAuthMode = false;
+function createDatabase(): Pool | { client: "better-sqlite3"; url: string } {
+  if (env.DATABASE_URL) {
+    return new Pool({ connectionString: env.DATABASE_URL });
+  }
+  // SQLite fallback for zero-config local dev (no orgs support)
+  return { client: "better-sqlite3", url: "./local.db" };
+}
 
 function createAuth() {
-  const isProduction = process.env.NODE_ENV === "production";
-
-  if (isProduction && (!env.DATABASE_URL || !env.BETTER_AUTH_SECRET)) {
-    return null;
-  }
-
-  let database: Pool | Database.Database;
-  let secret: string;
-
-  if (env.DATABASE_URL && env.BETTER_AUTH_SECRET) {
-    database = new Pool({ connectionString: env.DATABASE_URL });
-    secret = env.BETTER_AUTH_SECRET;
-  } else if (!isProduction) {
-    const dataDir = path.join(process.cwd(), ".data");
-    mkdirSync(dataDir, { recursive: true });
-    database = new Database(path.join(dataDir, "local-auth.db"));
-    secret = LOCAL_DEV_SECRET;
-    localAuthMode = true;
-  } else {
-    return null;
-  }
-
-  const pool = database instanceof Pool ? database : null;
+  const database = createDatabase();
+  const usePostgres = database instanceof Pool;
+  const secret = env.BETTER_AUTH_SECRET;
   const hasResendKey = Boolean(env.RESEND_API_KEY);
   const hasGoogleOAuth = Boolean(env.GOOGLE_CLIENT_ID) && Boolean(env.GOOGLE_CLIENT_SECRET);
 
-  const instance = betterAuth({
+  return betterAuth({
     secret,
     baseURL: env.BETTER_AUTH_URL,
     database,
@@ -57,14 +39,14 @@ function createAuth() {
           },
         }
       : {}),
-    ...(env.ENABLE_ORGANIZATIONS && pool
+    ...(usePostgres
       ? {
           databaseHooks: {
             session: {
               create: {
                 before: async (session: Record<string, unknown>) => {
                   try {
-                    const result = await pool.query(
+                    const result = await (database as Pool).query(
                       'SELECT "organizationId" FROM "member" WHERE "userId" = $1 LIMIT 1',
                       [session.userId],
                     );
@@ -77,8 +59,10 @@ function createAuth() {
                         },
                       };
                     }
-                  } catch {
-                    // member table may not exist if organizations are not set up yet
+                  } catch (err) {
+                    logger.warn("Failed to set activeOrganizationId on session", {
+                      error: err instanceof Error ? err.message : String(err),
+                    });
                   }
                   return { data: session };
                 },
@@ -93,27 +77,35 @@ function createAuth() {
       requireEmailVerification: hasResendKey,
       revokeSessionsOnPasswordReset: true,
       sendResetPassword: async ({ user, url }) => {
-        const safeUrl = escapeHtml(url);
         await sendEmail({
           to: user.email,
           subject: "Reset your password",
-          html: `<p>Click the link to reset your password:</p><p><a href="${safeUrl}">${safeUrl}</a></p>`,
+          html: renderEmail({
+            title: "Reset Your Password",
+            body: "Click the button below to reset your password.",
+            ctaUrl: url,
+            ctaText: "Reset Password",
+          }),
         });
       },
     },
     emailVerification: {
       sendOnSignUp: hasResendKey,
       sendVerificationEmail: async ({ user, url }) => {
-        const safeUrl = escapeHtml(url);
         await sendEmail({
           to: user.email,
           subject: "Verify your email",
-          html: `<p>Click the link to verify your email:</p><p><a href="${safeUrl}">${safeUrl}</a></p>`,
+          html: renderEmail({
+            title: "Verify Your Email",
+            body: "Click the button below to verify your email address.",
+            ctaUrl: url,
+            ctaText: "Verify Email",
+          }),
         });
       },
     },
     plugins: [
-      ...(env.ENABLE_ORGANIZATIONS
+      ...(usePostgres
         ? [
             organization({
               allowUserToCreateOrganization: true,
@@ -121,15 +113,15 @@ function createAuth() {
               membershipLimit: 50,
               invitationExpiresIn: 60 * 60 * 24 * 7, // 7 days
               sendInvitationEmail: async (data) => {
-                const safeInviterName = escapeHtml(data.inviter.user.name);
-                const safeOrgName = escapeHtml(data.organization.name);
-                const safeUrl = escapeHtml(
-                  `${env.BETTER_AUTH_URL}/accept-invite/${data.invitation.id}`,
-                );
                 await sendEmail({
                   to: data.email,
                   subject: `Join ${data.organization.name}`,
-                  html: `<p>${safeInviterName} invited you to join ${safeOrgName}.</p><p><a href="${safeUrl}">Accept Invitation</a></p>`,
+                  html: renderEmail({
+                    title: "You're Invited",
+                    body: `${data.inviter.user.name} invited you to join ${data.organization.name}.`,
+                    ctaUrl: `${env.BETTER_AUTH_URL}/accept-invite/${data.invitation.id}`,
+                    ctaText: "Accept Invitation",
+                  }),
                 });
               },
             }),
@@ -139,22 +131,8 @@ function createAuth() {
       nextCookies(), // must be last
     ],
   });
-
-  // Auto-migrate SQLite database in local dev mode
-  if (localAuthMode) {
-    instance.$context
-      .then((ctx) => ctx.runMigrations())
-      .catch(() => {
-        // Migration may fail on first import during build; tables will be created on next startup
-      });
-  }
-
-  return instance;
 }
 
 export const auth = createAuth();
 
-/** Whether auth is configured and available. */
-export const authEnabled = auth !== null;
-
-export type Session = NonNullable<typeof auth> extends { $Infer: { Session: infer S } } ? S : never;
+export type Session = (typeof auth)["$Infer"]["Session"];

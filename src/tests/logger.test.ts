@@ -12,6 +12,10 @@ vi.mock("@sentry/nextjs", () => ({
   addBreadcrumb: vi.fn(),
 }));
 
+vi.mock("@/lib/trace", () => ({
+  getTraceId: vi.fn(() => "test-trace-id"),
+}));
+
 import * as Sentry from "@sentry/nextjs";
 import { logger } from "@/lib/logger";
 
@@ -39,13 +43,18 @@ describe("logger", () => {
       const attrs = { userId: "u1", count: 42, active: true };
       logger[level]("test message", attrs);
 
-      expect(sentryLogger[level]).toHaveBeenCalledWith("test message", attrs);
+      expect(sentryLogger[level]).toHaveBeenCalledWith("test message", {
+        traceId: "test-trace-id",
+        ...attrs,
+      });
     });
 
     it("calls Sentry.logger with message only when no attrs", () => {
       logger[level]("bare message");
 
-      expect(sentryLogger[level]).toHaveBeenCalledWith("bare message", undefined);
+      expect(sentryLogger[level]).toHaveBeenCalledWith("bare message", {
+        traceId: "test-trace-id",
+      });
     });
 
     it("adds a breadcrumb with correct level mapping", () => {
@@ -56,7 +65,7 @@ describe("logger", () => {
         message: "breadcrumb msg",
         level: expectedBreadcrumbLevel[level],
         category: "app",
-        data: attrs,
+        data: { traceId: "test-trace-id", ...attrs },
       });
     });
 
@@ -67,25 +76,28 @@ describe("logger", () => {
         message: "no attrs",
         level: expectedBreadcrumbLevel[level],
         category: "app",
-        data: undefined,
+        data: { traceId: "test-trace-id" },
       });
     });
   });
 
   describe("attrs pass-through", () => {
-    it("passes string, number, and boolean attrs correctly", () => {
+    it("passes string, number, and boolean attrs correctly (enriched with traceId)", () => {
       const attrs = { name: "alice", age: 30, verified: false };
       logger.info("user event", attrs);
 
-      expect(sentryLogger.info).toHaveBeenCalledWith("user event", attrs);
-      expect(mockAddBreadcrumb).toHaveBeenCalledWith(expect.objectContaining({ data: attrs }));
+      const enriched = { traceId: "test-trace-id", ...attrs };
+      expect(sentryLogger.info).toHaveBeenCalledWith("user event", enriched);
+      expect(mockAddBreadcrumb).toHaveBeenCalledWith(expect.objectContaining({ data: enriched }));
     });
 
-    it("passes empty attrs object", () => {
+    it("passes empty attrs enriched with traceId", () => {
       logger.warn("empty attrs", {});
 
-      expect(sentryLogger.warn).toHaveBeenCalledWith("empty attrs", {});
-      expect(mockAddBreadcrumb).toHaveBeenCalledWith(expect.objectContaining({ data: {} }));
+      expect(sentryLogger.warn).toHaveBeenCalledWith("empty attrs", { traceId: "test-trace-id" });
+      expect(mockAddBreadcrumb).toHaveBeenCalledWith(
+        expect.objectContaining({ data: { traceId: "test-trace-id" } }),
+      );
     });
   });
 
