@@ -5,37 +5,12 @@
  * skipped when DATABASE_URL is absent from the environment or .env.local.
  */
 
-import * as fs from "node:fs";
-import * as path from "node:path";
 import { Pool } from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { closePool, TestFactory } from "./factory";
+import { loadEnv } from "./load-env";
 
-// ---------------------------------------------------------------------------
-// Detect DATABASE_URL the same way factory.ts does
-// ---------------------------------------------------------------------------
-
-function readEnvLocal(): string | undefined {
-  const envPath = path.resolve(__dirname, "../../.env.local");
-  if (!fs.existsSync(envPath)) return undefined;
-  const content = fs.readFileSync(envPath, "utf8");
-  for (const line of content.split("\n")) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) continue;
-    const eqIdx = trimmed.indexOf("=");
-    if (eqIdx === -1) continue;
-    const key = trimmed.slice(0, eqIdx);
-    if (key !== "DATABASE_URL") continue;
-    let val = trimmed.slice(eqIdx + 1);
-    if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
-      val = val.slice(1, -1);
-    }
-    return val;
-  }
-  return undefined;
-}
-
-const dbUrl = process.env.DATABASE_URL ?? readEnvLocal();
+const dbUrl = process.env.DATABASE_URL ?? loadEnv().DATABASE_URL;
 const hasDb = Boolean(dbUrl);
 
 // ---------------------------------------------------------------------------

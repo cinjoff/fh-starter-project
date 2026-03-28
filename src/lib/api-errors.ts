@@ -54,6 +54,12 @@ export class BadGatewayError extends ApiError {
   }
 }
 
+export class TooManyRequestsError extends ApiError {
+  constructor(message = "Too many requests") {
+    super(message, 429, "RATE_LIMITED");
+  }
+}
+
 export function isApiError(err: unknown): err is ApiError {
   return err instanceof ApiError;
 }

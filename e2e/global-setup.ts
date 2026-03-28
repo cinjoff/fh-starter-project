@@ -4,30 +4,12 @@
  */
 
 import { execSync } from "node:child_process";
-import * as fs from "node:fs";
 import * as path from "node:path";
 import { Pool } from "pg";
-
-function loadEnv(): Record<string, string> {
-  const envPath = path.resolve(__dirname, "../.env.local");
-  const content = fs.readFileSync(envPath, "utf8");
-  const vars: Record<string, string> = {};
-  for (const line of content.split("\n")) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) continue;
-    const eqIdx = trimmed.indexOf("=");
-    if (eqIdx === -1) continue;
-    let val = trimmed.slice(eqIdx + 1);
-    if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
-      val = val.slice(1, -1);
-    }
-    vars[trimmed.slice(0, eqIdx)] = val;
-  }
-  return vars;
-}
+import { loadEnv } from "../src/tests/load-env";
 
 export default async function globalSetup(): Promise<void> {
-  const envVars = loadEnv();
+  const envVars = loadEnv(path.resolve(__dirname, "../.env.local"));
   const connectionString = envVars.DATABASE_URL;
 
   if (!connectionString) {

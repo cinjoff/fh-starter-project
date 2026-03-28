@@ -15,32 +15,8 @@
  */
 
 import * as crypto from "node:crypto";
-import * as fs from "node:fs";
-import * as path from "node:path";
 import { Pool } from "pg";
-
-// ---------------------------------------------------------------------------
-// Env loading (mirrors e2e/auth-test-helpers.ts — avoids @t3-oss/env-nextjs)
-// ---------------------------------------------------------------------------
-
-function loadEnv(): Record<string, string> {
-  const envPath = path.resolve(__dirname, "../../.env.local");
-  if (!fs.existsSync(envPath)) return {};
-  const content = fs.readFileSync(envPath, "utf8");
-  const vars: Record<string, string> = {};
-  for (const line of content.split("\n")) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) continue;
-    const eqIdx = trimmed.indexOf("=");
-    if (eqIdx === -1) continue;
-    let val = trimmed.slice(eqIdx + 1);
-    if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
-      val = val.slice(1, -1);
-    }
-    vars[trimmed.slice(0, eqIdx)] = val;
-  }
-  return vars;
-}
+import { loadEnv } from "./load-env";
 
 const envVars = loadEnv();
 

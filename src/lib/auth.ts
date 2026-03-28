@@ -6,6 +6,7 @@ import { Pool } from "pg";
 import { sendEmail } from "./email";
 import { renderEmail } from "./email-template";
 import { env } from "./env";
+import { logger } from "./logger";
 
 function createAuth() {
   const database = new Pool({ connectionString: env.DATABASE_URL });
@@ -47,8 +48,10 @@ function createAuth() {
                   },
                 };
               }
-            } catch {
-              // connection errors are handled gracefully
+            } catch (err) {
+              logger.warn("Failed to set activeOrganizationId on session", {
+                error: err instanceof Error ? err.message : String(err),
+              });
             }
             return { data: session };
           },
