@@ -27,7 +27,7 @@
 - Rate limiting on invite endpoint (10 req/min)
 - Integration tests against local Supabase
 
-## Phase 04: User Management (NOT STARTED)
+## Phase 04: User Management (COMPLETE)
 **Goal:** Profile settings as reference server action implementation.
 - updateProfile + changePassword server actions
 - Zod validation at FormData boundary
