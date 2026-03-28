@@ -71,6 +71,7 @@ Design tokens in `.planning/DESIGN.md` — run `/fh:teach-impeccable` to customi
 - **Supabase**: use the **transaction pooler** URL (port 6543) from Dashboard → Settings → Database. Region prefix varies (`aws-0`, `aws-1`, etc.) — copy exactly from dashboard
 - **Email verification**: skipped when `RESEND_API_KEY` is not set. To manually verify a user in Supabase: `UPDATE "user" SET "emailVerified" = true WHERE email = '...'`
 - **Organizations**: require Postgres (not SQLite) — set both `ENABLE_ORGANIZATIONS` and `NEXT_PUBLIC_ENABLE_ORGANIZATIONS` to `true`
+- **Google Sign-In** (optional): set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `NEXT_PUBLIC_GOOGLE_AUTH_ENABLED=true` in `.env.local`. Create OAuth credentials at [Google Cloud Console](https://console.cloud.google.com/apis/credentials) → OAuth 2.0 Client ID (Web application). Add `http://localhost:3000/api/auth/callback/google` as an authorized redirect URI (replace with your production URL in prod). The Google button only appears on the login page when all three env vars are set.
 
 ## Gotchas
 
