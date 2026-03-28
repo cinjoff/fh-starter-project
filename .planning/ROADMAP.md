@@ -35,7 +35,7 @@
 - useActionState hook with loading/error/success states
 - Integration tests for action logic
 
-## Phase 05: Organizations Always-On (NOT STARTED)
+## Phase 05: Organizations Always-On (COMPLETE)
 **Goal:** Remove feature flags, make organizations mandatory.
 - Remove ENABLE_ORGANIZATIONS env vars
 - Always load organization plugin
