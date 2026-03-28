@@ -1,4 +1,4 @@
-import { testAuth } from "./auth-test-helpers";
+import { deleteOrgBySlug } from "./auth-test-helpers";
 import { expect, test } from "./fixtures";
 
 // ---------------------------------------------------------------------------
@@ -34,9 +34,7 @@ test.describe("Organization flows — create org", () => {
     await expect(authedPage).toHaveURL(/\/dashboard/, { timeout: 10_000 });
 
     // Clean up: delete the organization from the database
-    const ctx = await testAuth.$context;
-    const db = ctx.options.database as import("pg").Pool;
-    await db.query('DELETE FROM "organization" WHERE slug = $1', [orgSlug]);
+    await deleteOrgBySlug(orgSlug);
   });
 });
 
