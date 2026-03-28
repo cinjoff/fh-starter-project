@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getPool } from "@/lib/db";
+import { getPool, hasDatabaseUrl } from "@/lib/db";
 
 interface OrgRow {
   id: string;
@@ -27,6 +27,19 @@ function roleBadgeClass(role: string): string {
 }
 
 export async function OrgTree() {
+  if (!hasDatabaseUrl()) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Organization Tree</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-muted-foreground">Requires Postgres (DATABASE_URL)</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   const pool = getPool();
 
   let orgs: OrgRow[] = [];

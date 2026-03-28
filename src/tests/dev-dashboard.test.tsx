@@ -7,6 +7,7 @@ vi.mock("@/lib/auth", () => ({}));
 
 vi.mock("@/lib/db", () => ({
   getPool: vi.fn(),
+  hasDatabaseUrl: vi.fn(() => true),
 }));
 
 vi.mock("@/lib/env", () => ({

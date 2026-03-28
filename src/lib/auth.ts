@@ -8,8 +8,17 @@ import { renderEmail } from "./email-template";
 import { env } from "./env";
 import { logger } from "./logger";
 
+function createDatabase(): Pool | { client: "better-sqlite3"; url: string } {
+  if (env.DATABASE_URL) {
+    return new Pool({ connectionString: env.DATABASE_URL });
+  }
+  // SQLite fallback for zero-config local dev (no orgs support)
+  return { client: "better-sqlite3", url: "./local.db" };
+}
+
 function createAuth() {
-  const database = new Pool({ connectionString: env.DATABASE_URL });
+  const database = createDatabase();
+  const usePostgres = database instanceof Pool;
   const secret = env.BETTER_AUTH_SECRET;
   const hasResendKey = Boolean(env.RESEND_API_KEY);
   const hasGoogleOAuth = Boolean(env.GOOGLE_CLIENT_ID) && Boolean(env.GOOGLE_CLIENT_SECRET);
@@ -30,34 +39,38 @@ function createAuth() {
           },
         }
       : {}),
-    databaseHooks: {
-      session: {
-        create: {
-          before: async (session: Record<string, unknown>) => {
-            try {
-              const result = await database.query(
-                'SELECT "organizationId" FROM "member" WHERE "userId" = $1 LIMIT 1',
-                [session.userId],
-              );
-              const orgId = result.rows[0]?.organizationId;
-              if (typeof orgId === "string") {
-                return {
-                  data: {
-                    ...session,
-                    activeOrganizationId: orgId,
-                  },
-                };
-              }
-            } catch (err) {
-              logger.warn("Failed to set activeOrganizationId on session", {
-                error: err instanceof Error ? err.message : String(err),
-              });
-            }
-            return { data: session };
+    ...(usePostgres
+      ? {
+          databaseHooks: {
+            session: {
+              create: {
+                before: async (session: Record<string, unknown>) => {
+                  try {
+                    const result = await (database as Pool).query(
+                      'SELECT "organizationId" FROM "member" WHERE "userId" = $1 LIMIT 1',
+                      [session.userId],
+                    );
+                    const orgId = result.rows[0]?.organizationId;
+                    if (typeof orgId === "string") {
+                      return {
+                        data: {
+                          ...session,
+                          activeOrganizationId: orgId,
+                        },
+                      };
+                    }
+                  } catch (err) {
+                    logger.warn("Failed to set activeOrganizationId on session", {
+                      error: err instanceof Error ? err.message : String(err),
+                    });
+                  }
+                  return { data: session };
+                },
+              },
+            },
           },
-        },
-      },
-    },
+        }
+      : {}),
     emailAndPassword: {
       enabled: true,
       minPasswordLength: 8,
@@ -92,24 +105,28 @@ function createAuth() {
       },
     },
     plugins: [
-      organization({
-        allowUserToCreateOrganization: true,
-        organizationLimit: 1,
-        membershipLimit: 50,
-        invitationExpiresIn: 60 * 60 * 24 * 7, // 7 days
-        sendInvitationEmail: async (data) => {
-          await sendEmail({
-            to: data.email,
-            subject: `Join ${data.organization.name}`,
-            html: renderEmail({
-              title: "You're Invited",
-              body: `${data.inviter.user.name} invited you to join ${data.organization.name}.`,
-              ctaUrl: `${env.BETTER_AUTH_URL}/accept-invite/${data.invitation.id}`,
-              ctaText: "Accept Invitation",
+      ...(usePostgres
+        ? [
+            organization({
+              allowUserToCreateOrganization: true,
+              organizationLimit: 1,
+              membershipLimit: 50,
+              invitationExpiresIn: 60 * 60 * 24 * 7, // 7 days
+              sendInvitationEmail: async (data) => {
+                await sendEmail({
+                  to: data.email,
+                  subject: `Join ${data.organization.name}`,
+                  html: renderEmail({
+                    title: "You're Invited",
+                    body: `${data.inviter.user.name} invited you to join ${data.organization.name}.`,
+                    ctaUrl: `${env.BETTER_AUTH_URL}/accept-invite/${data.invitation.id}`,
+                    ctaText: "Accept Invitation",
+                  }),
+                });
+              },
             }),
-          });
-        },
-      }),
+          ]
+        : []),
       ...(process.env.NODE_ENV === "test" ? [testUtils()] : []),
       nextCookies(), // must be last
     ],

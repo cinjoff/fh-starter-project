@@ -1,6 +1,6 @@
 import { CheckCircle, XCircle } from "@phosphor-icons/react/dist/ssr";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getPool } from "@/lib/db";
+import { getPool, hasDatabaseUrl } from "@/lib/db";
 import { env } from "@/lib/env";
 
 // ---------------------------------------------------------------------------
@@ -9,6 +9,7 @@ import { env } from "@/lib/env";
 
 export async function AuthModeCard() {
   const hasResend = Boolean(env.RESEND_API_KEY);
+  const hasDb = hasDatabaseUrl();
 
   return (
     <Card>
@@ -19,7 +20,7 @@ export async function AuthModeCard() {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <p className="font-medium">Postgres (Supabase)</p>
+        <p className="font-medium">{hasDb ? "Postgres (Supabase)" : "SQLite (local)"}</p>
         <p className="text-muted-foreground mt-1 flex items-center gap-1">
           {hasResend ? (
             <CheckCircle className="text-green-500" weight="fill" />
@@ -50,6 +51,23 @@ function maskConnectionString(url: string | undefined): string {
 }
 
 export async function DatabaseCard() {
+  if (!hasDatabaseUrl()) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <XCircle className="text-yellow-500" weight="fill" />
+            Database
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="font-medium">SQLite (local fallback)</p>
+          <p className="text-muted-foreground mt-1">Set DATABASE_URL for Postgres features</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   const pool = getPool();
 
   let versionText: string;
@@ -94,6 +112,22 @@ export async function DatabaseCard() {
 // ---------------------------------------------------------------------------
 
 export async function OrgCountCard() {
+  if (!hasDatabaseUrl()) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <XCircle className="text-yellow-500" weight="fill" />
+            Organizations
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-muted-foreground">Requires Postgres (DATABASE_URL)</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   const pool = getPool();
 
   let orgCount = 0;

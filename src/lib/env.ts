@@ -4,8 +4,12 @@ import { z } from "zod";
 
 export const env = createEnv({
   server: {
-    BETTER_AUTH_SECRET: z.string().min(32),
-    DATABASE_URL: z.string().min(1),
+    BETTER_AUTH_SECRET: z
+      .string()
+      .min(32)
+      .optional()
+      .default("dev-secret-DO-NOT-USE-IN-PRODUCTION-000"),
+    DATABASE_URL: z.string().min(1).optional(),
     BETTER_AUTH_URL: z.string().optional().default("http://localhost:3000"),
     RESEND_API_KEY: z.string().optional(),
     EMAIL_FROM: z.string().optional().default("FH Starter <noreply@fh-starter.com>"),
