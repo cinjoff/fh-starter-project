@@ -58,7 +58,7 @@ function createAuth() {
           },
         }
       : {}),
-    ...(env.ENABLE_ORGANIZATIONS && pool
+    ...(pool
       ? {
           databaseHooks: {
             session: {
@@ -79,7 +79,7 @@ function createAuth() {
                       };
                     }
                   } catch {
-                    // member table may not exist if organizations are not set up yet
+                    // connection errors are handled gracefully
                   }
                   return { data: session };
                 },
@@ -122,28 +122,24 @@ function createAuth() {
       },
     },
     plugins: [
-      ...(env.ENABLE_ORGANIZATIONS
-        ? [
-            organization({
-              allowUserToCreateOrganization: true,
-              organizationLimit: 1,
-              membershipLimit: 50,
-              invitationExpiresIn: 60 * 60 * 24 * 7, // 7 days
-              sendInvitationEmail: async (data) => {
-                await sendEmail({
-                  to: data.email,
-                  subject: `Join ${data.organization.name}`,
-                  html: renderEmail({
-                    title: "You're Invited",
-                    body: `${data.inviter.user.name} invited you to join ${data.organization.name}.`,
-                    ctaUrl: `${env.BETTER_AUTH_URL}/accept-invite/${data.invitation.id}`,
-                    ctaText: "Accept Invitation",
-                  }),
-                });
-              },
+      organization({
+        allowUserToCreateOrganization: true,
+        organizationLimit: 1,
+        membershipLimit: 50,
+        invitationExpiresIn: 60 * 60 * 24 * 7, // 7 days
+        sendInvitationEmail: async (data) => {
+          await sendEmail({
+            to: data.email,
+            subject: `Join ${data.organization.name}`,
+            html: renderEmail({
+              title: "You're Invited",
+              body: `${data.inviter.user.name} invited you to join ${data.organization.name}.`,
+              ctaUrl: `${env.BETTER_AUTH_URL}/accept-invite/${data.invitation.id}`,
+              ctaText: "Accept Invitation",
             }),
-          ]
-        : []),
+          });
+        },
+      }),
       ...(process.env.NODE_ENV === "test" ? [testUtils()] : []),
       nextCookies(), // must be last
     ],

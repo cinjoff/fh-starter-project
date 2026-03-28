@@ -1,8 +1,8 @@
 import * as Sentry from "@sentry/nextjs";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { OrgSwitcher } from "@/components/org-switcher";
 import { auth, authEnabled } from "@/lib/auth";
-import { env } from "@/lib/env";
 
 export default async function ProtectedLayout({ children }: { children: React.ReactNode }) {
   if (!authEnabled || !auth) {
@@ -17,12 +17,16 @@ export default async function ProtectedLayout({ children }: { children: React.Re
 
   Sentry.setUser({ id: session.user.id, email: session.user.email });
 
-  if (
-    env.ENABLE_ORGANIZATIONS &&
-    !("activeOrganizationId" in session.session && session.session.activeOrganizationId)
-  ) {
+  if (!session.session.activeOrganizationId) {
     redirect("/create-organization");
   }
 
-  return <>{children}</>;
+  return (
+    <div className="min-h-screen">
+      <header className="border-b px-4 py-3 flex items-center justify-between">
+        <OrgSwitcher activeOrgId={session.session.activeOrganizationId} />
+      </header>
+      <main>{children}</main>
+    </div>
+  );
 }

@@ -17,6 +17,14 @@ function toSlug(value: string): string {
 
 export default function CreateOrganizationPage() {
   const router = useRouter();
+  const { data: activeOrg } = authClient.useActiveOrganization();
+
+  useEffect(() => {
+    if (activeOrg) {
+      router.replace("/dashboard");
+    }
+  }, [activeOrg, router]);
+
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [slugTouched, setSlugTouched] = useState(false);
