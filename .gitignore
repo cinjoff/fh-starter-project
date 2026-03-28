@@ -54,19 +54,14 @@ blob-report/
 playwright/.cache/
 .auth/
 
-# planning artifacts (session-specific, gitignored)
-.planning/PROJECT.md
-.planning/ROADMAP.md
-.planning/STATE.md
-.planning/REQUIREMENTS.md
-.planning/DECISIONS.md
-.planning/DESIGN.md
-.planning/phases/
-.planning/research/
-.planning/designs/
+# planning artifacts (external, symlinked by conductor)
+.planning/
 
 # fallow static analysis cache
 .fallow/
 
 # local auth SQLite database
 .data/
+
+# claude local settings (per-workspace env overrides)
+.claude/settings.json

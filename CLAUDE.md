@@ -25,7 +25,7 @@ Next.js 16 + React 19 + TypeScript, Tailwind v4, Shadcn/ui, Phosphor Icons, Supa
 ```
 src/
   app/           # Next.js App Router (pages, layouts, API routes)
-  lib/           # Shared utilities (supabase client, sentry-local, env)
+  lib/           # Shared utilities (supabase client, sentry-local, env, logger)
   components/    # React components (ui/ for shadcn)
   tests/         # Vitest tests
 e2e/             # Playwright E2E tests
@@ -39,47 +39,32 @@ supabase/        # Migrations and seed data
 - Stage files individually, never `git add .`
 - Server components by default; `'use client'` only when needed
 - Zod schemas for all external data (API inputs, env vars, DB rows)
-- Server action FormData must be parsed with Zod before use (not `as string` casts)
 - Next.js 16: use `proxy.ts` (not middleware.ts), await `params`/`cookies()`/`headers()`
 
 ## Testing
 
-- Vitest + React Testing Library in `src/tests/`
-- Playwright E2E in `e2e/`
-- Test file convention: `*.test.ts(x)` for Vitest, `*.spec.ts` for Playwright
-
-## Observability
-
-- Use `import { logger } from "@/lib/logger"` instead of `console.log` in application code
-- Logger levels: `logger.trace()`, `logger.debug()`, `logger.info()`, `logger.warn()`, `logger.error()`, `logger.fatal()`
-- Logger attrs must be `string | number | boolean` only — no objects, arrays, or undefined
-- Set user context after auth: `Sentry.setUser({ id, email })` — clear on sign-out: `Sentry.setUser(null)`
-- Add breadcrumbs for key user actions: `Sentry.addBreadcrumb({ category, message, level, data })`
-- Wrap slow/critical operations with `Sentry.startSpan({ name, op }, callback)`
-- Server actions: wrap with `Sentry.withServerActionInstrumentation(name, opts, fn)`
-- `console.log` is acceptable only in `sentry-local` internals and test files
-- Prefer "wide events" — one comprehensive log with all context over many fragmented logs
+- Vitest + React Testing Library in `src/tests/`, Playwright E2E in `e2e/`
+- File convention: `*.test.ts(x)` for Vitest, `*.spec.ts` for Playwright
+- Use `pnpm test --run` in CI/scripts to avoid watch mode hanging
 
 ## Planning
 
-Project planning artifacts live in `.planning/` (gitignored, auto-generated).
-Design tokens in `.planning/DESIGN.md` — run `/fh:teach-impeccable` to customize.
-
-## Database & Auth
-
-- **No-config local dev**: leave `DATABASE_URL` and `BETTER_AUTH_SECRET` blank → SQLite fallback in `.data/local-auth.db` with auto-migration
-- **Supabase**: use the **transaction pooler** URL (port 6543) from Dashboard → Settings → Database. Region prefix varies (`aws-0`, `aws-1`, etc.) — copy exactly from dashboard
-- **Email verification**: skipped when `RESEND_API_KEY` is not set. To manually verify a user in Supabase: `UPDATE "user" SET "emailVerified" = true WHERE email = '...'`
-- **Organizations**: require Postgres (not SQLite) — set both `ENABLE_ORGANIZATIONS` and `NEXT_PUBLIC_ENABLE_ORGANIZATIONS` to `true`
-- **Google Sign-In** (optional): set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` in `.env.local`. Create OAuth credentials at [Google Cloud Console](https://console.cloud.google.com/apis/credentials) → OAuth 2.0 Client ID (Web application). Add `http://localhost:3000/api/auth/callback/google` as an authorized redirect URI (replace with your production URL in prod). The Google button auto-appears on the login page when both env vars are set.
+Project state tracked in `.planning/`. Run `/fh:progress` to check status.
+Design tokens in `.planning/DESIGN.md` — run `/fh:ui-branding` to customize.
 
 ## Gotchas
 
-- `shadcn` must be in `dependencies` (not devDependencies) — `globals.css` imports `shadcn/tailwind.css` for Tailwind v4 variants/animations
+- `shadcn` must be in `dependencies` (not devDependencies) — `globals.css` imports `shadcn/tailwind.css`
 - Next.js 16 renamed middleware.ts to proxy.ts — read `node_modules/next/dist/docs/` for API changes
-- `cookies()`, `headers()`, `params` are all async (must be awaited)
-- Sentry local mode: set `SENTRY_LOCAL=true` in .env.local for dev SQLite store
-- Run `node src/lib/sentry-local-query.mjs recent` to inspect captured errors
-- Vitest: use `pnpm test --run` in CI/scripts to avoid watch mode hanging
 - Proxy (`src/proxy.ts`) only applies security headers — auth redirects are in `(app)/layout.tsx`
-- OAuth callback validates `x-forwarded-host` against `NEXT_PUBLIC_APP_URL` — do not trust raw header
+- OAuth callback validates `x-forwarded-host` against `NEXT_PUBLIC_APP_URL`
+- Sentry local mode: `SENTRY_LOCAL=true` in .env.local, query with `node src/lib/sentry-local-query.mjs recent`
+
+# Compact Instructions
+
+When compacting, preserve:
+- Current GSD phase and plan number from .planning/STATE.md
+- All locked decisions from the active phase CONTEXT.md
+- File paths modified so far in this session
+- Test failures and their root causes
+- Any requirements or constraints the user stated this session
