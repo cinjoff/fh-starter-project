@@ -39,6 +39,7 @@ function createAuth() {
 
   const pool = database instanceof Pool ? database : null;
   const hasResendKey = Boolean(env.RESEND_API_KEY);
+  const hasGoogleOAuth = Boolean(env.GOOGLE_CLIENT_ID) && Boolean(env.GOOGLE_CLIENT_SECRET);
 
   const instance = betterAuth({
     secret,
@@ -46,6 +47,16 @@ function createAuth() {
     database,
     trustedOrigins: [env.BETTER_AUTH_URL],
     rateLimit: { enabled: true },
+    ...(hasGoogleOAuth && env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET
+      ? {
+          socialProviders: {
+            google: {
+              clientId: env.GOOGLE_CLIENT_ID,
+              clientSecret: env.GOOGLE_CLIENT_SECRET,
+            },
+          },
+        }
+      : {}),
     ...(env.ENABLE_ORGANIZATIONS && pool
       ? {
           databaseHooks: {

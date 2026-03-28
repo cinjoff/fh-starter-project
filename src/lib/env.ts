@@ -14,6 +14,8 @@ export const env = createEnv({
       .optional()
       .transform((v) => v === "true" || v === "1"),
     SENTRY_LOCAL: z.string().optional(),
+    GOOGLE_CLIENT_ID: z.string().optional(),
+    GOOGLE_CLIENT_SECRET: z.string().optional(),
   },
   client: {
     NEXT_PUBLIC_APP_URL: z.string().optional().default("http://localhost:3000"),
