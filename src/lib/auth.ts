@@ -6,7 +6,8 @@ import { testUtils } from "better-auth/plugins";
 import { organization } from "better-auth/plugins/organization";
 import Database from "better-sqlite3";
 import { Pool } from "pg";
-import { escapeHtml, sendEmail } from "./email";
+import { sendEmail } from "./email";
+import { renderEmail } from "./email-template";
 import { env } from "./env";
 
 const LOCAL_DEV_SECRET = "local-dev-secret-not-for-production!!";
@@ -93,22 +94,30 @@ function createAuth() {
       requireEmailVerification: hasResendKey,
       revokeSessionsOnPasswordReset: true,
       sendResetPassword: async ({ user, url }) => {
-        const safeUrl = escapeHtml(url);
         await sendEmail({
           to: user.email,
           subject: "Reset your password",
-          html: `<p>Click the link to reset your password:</p><p><a href="${safeUrl}">${safeUrl}</a></p>`,
+          html: renderEmail({
+            title: "Reset Your Password",
+            body: "Click the button below to reset your password.",
+            ctaUrl: url,
+            ctaText: "Reset Password",
+          }),
         });
       },
     },
     emailVerification: {
       sendOnSignUp: hasResendKey,
       sendVerificationEmail: async ({ user, url }) => {
-        const safeUrl = escapeHtml(url);
         await sendEmail({
           to: user.email,
           subject: "Verify your email",
-          html: `<p>Click the link to verify your email:</p><p><a href="${safeUrl}">${safeUrl}</a></p>`,
+          html: renderEmail({
+            title: "Verify Your Email",
+            body: "Click the button below to verify your email address.",
+            ctaUrl: url,
+            ctaText: "Verify Email",
+          }),
         });
       },
     },
@@ -121,15 +130,15 @@ function createAuth() {
               membershipLimit: 50,
               invitationExpiresIn: 60 * 60 * 24 * 7, // 7 days
               sendInvitationEmail: async (data) => {
-                const safeInviterName = escapeHtml(data.inviter.user.name);
-                const safeOrgName = escapeHtml(data.organization.name);
-                const safeUrl = escapeHtml(
-                  `${env.BETTER_AUTH_URL}/accept-invite/${data.invitation.id}`,
-                );
                 await sendEmail({
                   to: data.email,
                   subject: `Join ${data.organization.name}`,
-                  html: `<p>${safeInviterName} invited you to join ${safeOrgName}.</p><p><a href="${safeUrl}">Accept Invitation</a></p>`,
+                  html: renderEmail({
+                    title: "You're Invited",
+                    body: `${data.inviter.user.name} invited you to join ${data.organization.name}.`,
+                    ctaUrl: `${env.BETTER_AUTH_URL}/accept-invite/${data.invitation.id}`,
+                    ctaText: "Accept Invitation",
+                  }),
                 });
               },
             }),
