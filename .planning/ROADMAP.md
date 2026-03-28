@@ -1,6 +1,6 @@
 # Roadmap
 
-## Phase 01: Infrastructure Foundation (NOT STARTED)
+## Phase 01: Infrastructure Foundation (COMPLETE)
 **Goal:** Local Supabase dev environment and request-scoped tracing.
 - Supabase config + setup script (OrbStack/Docker)
 - Seed data: platform org, 2 tenants, 3 users, 2 customers
