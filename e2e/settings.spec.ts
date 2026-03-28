@@ -17,7 +17,7 @@ test.describe("Settings — profile", () => {
     await settings.updateName("E2E Test User");
     await settings.submitProfile();
 
-    await settings.expectSuccessToast();
+    await settings.expectSuccessToast("Profile updated");
   });
 });
 
@@ -31,7 +31,7 @@ test.describe("Settings — password", () => {
     await settings.changePassword("password", "NewPassword123!");
     await settings.submitPassword();
 
-    await settings.expectSuccessToast();
+    await settings.expectSuccessToast("Password updated");
   });
 
   test("mismatched passwords shows error message", async ({ authedPage }) => {

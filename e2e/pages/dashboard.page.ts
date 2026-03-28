@@ -20,18 +20,6 @@ export class DashboardPage {
     return this.page.getByRole("button", { name: /sign out/i });
   }
 
-  get orgSwitcherTrigger() {
-    return this.page.getByRole("button", { name: "Switch organization" }).or(
-      // The trigger uses aria-label="Switch organization" but renders as a trigger element.
-      // Fall back to the aria-label used in the component.
-      this.page.getByRole("button", { name: /switch organization/i }),
-    );
-  }
-
-  /**
-   * The OrgSwitcher trigger does not have `role="button"` — it is a DropdownMenuTrigger.
-   * We use the aria-label set on the element directly.
-   */
   get orgSwitcherButton() {
     return this.page.getByLabel("Switch organization");
   }

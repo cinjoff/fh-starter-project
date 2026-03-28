@@ -1,6 +1,5 @@
-import { CheckCircle, Warning, XCircle } from "@phosphor-icons/react/dist/ssr";
+import { CheckCircle, XCircle } from "@phosphor-icons/react/dist/ssr";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { localAuthMode } from "@/lib/auth";
 import { getPool } from "@/lib/db";
 import { env } from "@/lib/env";
 
@@ -9,23 +8,18 @@ import { env } from "@/lib/env";
 // ---------------------------------------------------------------------------
 
 export async function AuthModeCard() {
-  const isSqlite = localAuthMode;
   const hasResend = Boolean(env.RESEND_API_KEY);
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          {isSqlite ? (
-            <Warning className="text-yellow-500" weight="fill" />
-          ) : (
-            <CheckCircle className="text-green-500" weight="fill" />
-          )}
+          <CheckCircle className="text-green-500" weight="fill" />
           Auth Mode
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <p className="font-medium">{isSqlite ? "SQLite (local dev)" : "Postgres (Supabase)"}</p>
+        <p className="font-medium">Postgres (Supabase)</p>
         <p className="text-muted-foreground mt-1 flex items-center gap-1">
           {hasResend ? (
             <CheckCircle className="text-green-500" weight="fill" />
@@ -57,22 +51,6 @@ function maskConnectionString(url: string | undefined): string {
 
 export async function DatabaseCard() {
   const pool = getPool();
-
-  if (!pool) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Warning className="text-yellow-500" weight="fill" />
-            Database
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground">No Postgres — using SQLite fallback</p>
-        </CardContent>
-      </Card>
-    );
-  }
 
   let versionText: string;
   let isError = false;
@@ -117,22 +95,6 @@ export async function DatabaseCard() {
 
 export async function OrgCountCard() {
   const pool = getPool();
-
-  if (!pool) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Warning className="text-yellow-500" weight="fill" />
-            Organizations
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground">Organizations require Postgres</p>
-        </CardContent>
-      </Card>
-    );
-  }
 
   let orgCount = 0;
   let memberCount = 0;

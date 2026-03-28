@@ -3,6 +3,7 @@
  * Runs once before any tests. Fails fast with actionable error messages.
  */
 
+import { execSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { Pool } from "pg";
@@ -73,20 +74,33 @@ export default async function globalSetup(): Promise<void> {
     const userCount = Number(result.rows[0]?.count ?? 0);
 
     if (userCount === 0) {
-      // Warn rather than hard-fail — tests may create users themselves.
-      console.warn(
-        '[global-setup] WARNING: The "user" table is empty. ' +
-          "Seed data may be missing. Run `supabase db reset` to re-apply migrations and seed data.",
+      console.log("[global-setup] No seed data found — running seed script...");
+      execSync("npx tsx scripts/seed.ts", {
+        cwd: path.resolve(__dirname, ".."),
+        stdio: "inherit",
+      });
+      const recheck = await pool.query<{ count: string }>(
+        `SELECT COUNT(*)::text AS count FROM "user"`,
       );
+      const recheckCount = Number(recheck.rows[0]?.count ?? 0);
+      console.log(`[global-setup] Seed complete — ${recheckCount} user(s) found.`);
     } else {
       console.log(`[global-setup] Database OK — ${userCount} user(s) found.`);
     }
   } catch (err) {
     // The "user" table might not exist yet (migrations haven't run).
-    console.warn(
-      `[global-setup] WARNING: Could not query the "user" table (${err instanceof Error ? err.message : String(err)}). ` +
-        "Run `supabase db reset` to apply migrations and seed data.",
+    console.log(
+      `[global-setup] "user" table not found (${err instanceof Error ? err.message : String(err)}) — running seed script...`,
     );
+    execSync("npx tsx scripts/seed.ts", {
+      cwd: path.resolve(__dirname, ".."),
+      stdio: "inherit",
+    });
+    const recheck = await pool.query<{ count: string }>(
+      `SELECT COUNT(*)::text AS count FROM "user"`,
+    );
+    const recheckCount = Number(recheck.rows[0]?.count ?? 0);
+    console.log(`[global-setup] Seed complete — ${recheckCount} user(s) found.`);
   }
 
   await pool.end();

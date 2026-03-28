@@ -3,9 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // --- Mocks (must be before imports) ---
 
-vi.mock("@/lib/auth", () => ({
-  localAuthMode: false,
-}));
+vi.mock("@/lib/auth", () => ({}));
 
 vi.mock("@/lib/db", () => ({
   getPool: vi.fn(),
@@ -14,7 +12,7 @@ vi.mock("@/lib/db", () => ({
 vi.mock("@/lib/env", () => ({
   env: {
     RESEND_API_KEY: undefined,
-    DATABASE_URL: undefined,
+    DATABASE_URL: "postgresql://localhost/test",
   },
 }));
 
@@ -31,7 +29,6 @@ import { OrgTree } from "@/app/(dev)/dev/org-tree";
 import { RecentErrors } from "@/app/(dev)/dev/recent-errors";
 import { AuthModeCard, DatabaseCard, OrgCountCard } from "@/app/(dev)/dev/status-cards";
 // Import after mocks
-import * as authModule from "@/lib/auth";
 import * as dbModule from "@/lib/db";
 
 // ---------------------------------------------------------------------------
@@ -47,18 +44,7 @@ describe("AuthModeCard", () => {
     cleanup();
   });
 
-  it("shows SQLite mode text when localAuthMode is true", async () => {
-    vi.spyOn(authModule, "localAuthMode", "get").mockReturnValue(true);
-
-    const jsx = await AuthModeCard();
-    render(jsx);
-
-    expect(screen.getByText(/SQLite/i)).toBeTruthy();
-  });
-
-  it("shows Postgres mode text when localAuthMode is false", async () => {
-    vi.spyOn(authModule, "localAuthMode", "get").mockReturnValue(false);
-
+  it("shows Postgres mode text", async () => {
     const jsx = await AuthModeCard();
     render(jsx);
 
@@ -66,8 +52,6 @@ describe("AuthModeCard", () => {
   });
 
   it("shows email verification inactive when RESEND_API_KEY is not set", async () => {
-    vi.spyOn(authModule, "localAuthMode", "get").mockReturnValue(false);
-
     const jsx = await AuthModeCard();
     render(jsx);
 
@@ -75,8 +59,6 @@ describe("AuthModeCard", () => {
   });
 
   it("renders AuthMode card title", async () => {
-    vi.spyOn(authModule, "localAuthMode", "get").mockReturnValue(false);
-
     const jsx = await AuthModeCard();
     render(jsx);
 
@@ -95,15 +77,6 @@ describe("DatabaseCard", () => {
 
   afterEach(() => {
     cleanup();
-  });
-
-  it("shows SQLite fallback message when pool is null", async () => {
-    vi.mocked(dbModule.getPool).mockReturnValue(null);
-
-    const jsx = await DatabaseCard();
-    render(jsx);
-
-    expect(screen.getByText(/SQLite fallback/i)).toBeTruthy();
   });
 
   it("shows Postgres version when pool is available", async () => {
@@ -131,7 +104,11 @@ describe("DatabaseCard", () => {
   });
 
   it("renders Database card title", async () => {
-    vi.mocked(dbModule.getPool).mockReturnValue(null);
+    vi.mocked(dbModule.getPool).mockReturnValue({
+      query: vi.fn().mockResolvedValue({
+        rows: [{ version: "PostgreSQL 15.3" }],
+      }),
+    } as never);
 
     const jsx = await DatabaseCard();
     render(jsx);
@@ -153,15 +130,6 @@ describe("OrgCountCard", () => {
     cleanup();
   });
 
-  it("shows 'Organizations require Postgres' when pool is null", async () => {
-    vi.mocked(dbModule.getPool).mockReturnValue(null);
-
-    const jsx = await OrgCountCard();
-    render(jsx);
-
-    expect(screen.getByText(/Organizations require Postgres/i)).toBeTruthy();
-  });
-
   it("shows org count and member count when pool is available", async () => {
     vi.mocked(dbModule.getPool).mockReturnValue({
       query: vi
@@ -178,7 +146,12 @@ describe("OrgCountCard", () => {
   });
 
   it("renders Organizations card title", async () => {
-    vi.mocked(dbModule.getPool).mockReturnValue(null);
+    vi.mocked(dbModule.getPool).mockReturnValue({
+      query: vi
+        .fn()
+        .mockResolvedValueOnce({ rows: [{ count: "0" }] })
+        .mockResolvedValueOnce({ rows: [{ count: "0" }] }),
+    } as never);
 
     const jsx = await OrgCountCard();
     render(jsx);
@@ -281,15 +254,6 @@ describe("OrgTree", () => {
 
   afterEach(() => {
     cleanup();
-  });
-
-  it("shows 'Requires Postgres' when pool is null", async () => {
-    vi.mocked(dbModule.getPool).mockReturnValue(null);
-
-    const jsx = await OrgTree();
-    render(jsx);
-
-    expect(screen.getByText(/Requires Postgres/i)).toBeTruthy();
   });
 
   it("shows org names and member names with roles", async () => {

@@ -13,7 +13,15 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "prepare": "husky"
+    "prepare": "husky",
+    "setup": "bash scripts/setup.sh",
+    "db:seed": "npx tsx scripts/seed.ts",
+    "db:start": "supabase start",
+    "db:stop": "supabase stop",
+    "db:reset": "supabase db reset && npx tsx scripts/seed.ts",
+    "db:studio": "sh scripts/open-studio.sh",
+    "db:clean": "docker builder prune -f",
+    "db:clean:all": "docker builder prune -af"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
@@ -68,6 +76,7 @@
     "jsdom": "^29.0.0",
     "lint-staged": "^16.4.0",
     "tailwindcss": "^4",
+    "tsx": "^4.21.0",
     "typescript": "^5",
     "vitest": "^4.1.0"
   },

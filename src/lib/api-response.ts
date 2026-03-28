@@ -1,3 +1,5 @@
+import { getTraceId } from "@/lib/trace";
+
 export type PaginationMeta = {
   page: number;
   per_page: number;
@@ -6,11 +8,11 @@ export type PaginationMeta = {
 };
 
 export type ApiResponse<T> =
-  | { success: true; data: T; trace_id?: string; pagination?: PaginationMeta }
+  | { success: true; data: T; trace_id: string; pagination?: PaginationMeta }
   | {
       success: false;
       error: { code: string; message: string; details?: Record<string, unknown> };
-      trace_id?: string;
+      trace_id: string;
     };
 
 export function ok<T>(
@@ -20,7 +22,7 @@ export function ok<T>(
   return {
     success: true,
     data,
-    ...(opts?.traceId !== undefined && { trace_id: opts.traceId }),
+    trace_id: opts?.traceId ?? getTraceId(),
     ...(opts?.pagination !== undefined && { pagination: opts.pagination }),
   };
 }
@@ -37,6 +39,6 @@ export function apiError(
       message,
       ...(opts?.details !== undefined && { details: opts.details }),
     },
-    ...(opts?.traceId !== undefined && { trace_id: opts.traceId }),
+    trace_id: opts?.traceId ?? getTraceId(),
   };
 }

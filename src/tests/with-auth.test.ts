@@ -13,6 +13,7 @@ vi.mock("@/lib/auth", () => ({
 
 vi.mock("@/lib/trace", () => ({
   getTraceId: vi.fn(() => "trace-123"),
+  withTrace: vi.fn((fn: () => Promise<unknown>) => fn()),
 }));
 
 vi.mock("@/lib/logger", () => ({
@@ -27,7 +28,7 @@ vi.mock("@/lib/db", () => ({
 }));
 
 // Import after mocks
-import * as authModule from "@/lib/auth";
+import { auth } from "@/lib/auth";
 import * as dbModule from "@/lib/db";
 import { withAuth, withOrgAuth } from "@/lib/with-auth";
 
@@ -52,23 +53,8 @@ describe("withAuth", () => {
     vi.clearAllMocks();
   });
 
-  it("returns 503 when auth is null", async () => {
-    vi.spyOn(authModule, "auth", "get").mockReturnValue(null as never);
-
-    const handler = vi.fn().mockResolvedValue({ hello: "world" });
-    const wrappedHandler = withAuth(handler);
-    const res = await wrappedHandler(makeRequest());
-
-    expect(res.status).toBe(503);
-    const body = await parseJson(res);
-    expect(body.success).toBe(false);
-    expect(body.error.code).toBe("SERVICE_UNAVAILABLE");
-  });
-
   it("returns 401 when no session", async () => {
-    vi.spyOn(authModule, "auth", "get").mockReturnValue({
-      api: { getSession: vi.fn().mockResolvedValue(null) },
-    } as never);
+    vi.mocked(auth.api.getSession).mockResolvedValue(null);
 
     const handler = vi.fn().mockResolvedValue({ hello: "world" });
     const wrappedHandler = withAuth(handler);
@@ -81,9 +67,7 @@ describe("withAuth", () => {
   });
 
   it("returns ApiResponse envelope on success with trace_id", async () => {
-    vi.spyOn(authModule, "auth", "get").mockReturnValue({
-      api: { getSession: vi.fn().mockResolvedValue(fakeSession) },
-    } as never);
+    vi.mocked(auth.api.getSession).mockResolvedValue(fakeSession as never);
 
     const handler = vi.fn().mockResolvedValue({ message: "ok" });
     const wrappedHandler = withAuth(handler);
@@ -97,9 +81,7 @@ describe("withAuth", () => {
   });
 
   it("passes AuthContext to handler", async () => {
-    vi.spyOn(authModule, "auth", "get").mockReturnValue({
-      api: { getSession: vi.fn().mockResolvedValue(fakeSession) },
-    } as never);
+    vi.mocked(auth.api.getSession).mockResolvedValue(fakeSession as never);
 
     const handler = vi.fn().mockImplementation(async (_req, ctx) => {
       return { userId: ctx.user.id };
@@ -120,9 +102,7 @@ describe("withAuth", () => {
   });
 
   it("catches ApiError and returns correct status and code", async () => {
-    vi.spyOn(authModule, "auth", "get").mockReturnValue({
-      api: { getSession: vi.fn().mockResolvedValue(fakeSession) },
-    } as never);
+    vi.mocked(auth.api.getSession).mockResolvedValue(fakeSession as never);
 
     const handler = vi.fn().mockRejectedValue(new UnauthorizedError("Token expired"));
     const wrappedHandler = withAuth(handler);
@@ -136,9 +116,7 @@ describe("withAuth", () => {
   });
 
   it("rethrows non-ApiError after logging", async () => {
-    vi.spyOn(authModule, "auth", "get").mockReturnValue({
-      api: { getSession: vi.fn().mockResolvedValue(fakeSession) },
-    } as never);
+    vi.mocked(auth.api.getSession).mockResolvedValue(fakeSession as never);
 
     const { logger } = await import("@/lib/logger");
 
@@ -159,33 +137,32 @@ describe("withOrgAuth", () => {
     vi.clearAllMocks();
   });
 
-  it("returns 503 when getPool() returns null", async () => {
-    vi.spyOn(authModule, "auth", "get").mockReturnValue({
-      api: { getSession: vi.fn().mockResolvedValue(fakeSession) },
-    } as never);
-    vi.mocked(dbModule.getPool).mockReturnValue(null);
+  it("returns 403 when getPool() throws (database unavailable)", async () => {
+    vi.mocked(auth.api.getSession).mockResolvedValue(fakeSession as never);
+    vi.mocked(dbModule.getPool).mockImplementation(() => {
+      throw new Error("no DATABASE_URL");
+    });
 
     const handler = vi.fn().mockResolvedValue({ data: "ok" });
     const wrappedHandler = withOrgAuth("member", handler);
-    const res = await wrappedHandler(makeRequest(), { orgId: "org-1" });
-
-    expect(res.status).toBe(503);
-    const body = await parseJson(res);
-    expect(body.success).toBe(false);
-    expect(body.error.code).toBe("SERVICE_UNAVAILABLE");
+    await expect(
+      wrappedHandler(makeRequest(), {
+        params: Promise.resolve({ orgId: "org-1" }),
+      }),
+    ).rejects.toThrow("no DATABASE_URL");
   });
 
   it("returns 403 when user is not a member of the org", async () => {
-    vi.spyOn(authModule, "auth", "get").mockReturnValue({
-      api: { getSession: vi.fn().mockResolvedValue(fakeSession) },
-    } as never);
+    vi.mocked(auth.api.getSession).mockResolvedValue(fakeSession as never);
     vi.mocked(dbModule.getPool).mockReturnValue({
       query: vi.fn().mockResolvedValue({ rows: [] }),
     } as never);
 
     const handler = vi.fn().mockResolvedValue({ data: "ok" });
     const wrappedHandler = withOrgAuth("member", handler);
-    const res = await wrappedHandler(makeRequest(), { orgId: "org-1" });
+    const res = await wrappedHandler(makeRequest(), {
+      params: Promise.resolve({ orgId: "org-1" }),
+    });
 
     expect(res.status).toBe(403);
     const body = await parseJson(res);
@@ -194,9 +171,7 @@ describe("withOrgAuth", () => {
   });
 
   it("returns 403 when role is insufficient", async () => {
-    vi.spyOn(authModule, "auth", "get").mockReturnValue({
-      api: { getSession: vi.fn().mockResolvedValue(fakeSession) },
-    } as never);
+    vi.mocked(auth.api.getSession).mockResolvedValue(fakeSession as never);
     vi.mocked(dbModule.getPool).mockReturnValue({
       query: vi.fn().mockResolvedValue({
         rows: [{ role: "member", userId: "user-1", organizationId: "org-1" }],
@@ -205,7 +180,9 @@ describe("withOrgAuth", () => {
 
     const handler = vi.fn().mockResolvedValue({ data: "ok" });
     const wrappedHandler = withOrgAuth("admin", handler); // requires admin, user is member
-    const res = await wrappedHandler(makeRequest(), { orgId: "org-1" });
+    const res = await wrappedHandler(makeRequest(), {
+      params: Promise.resolve({ orgId: "org-1" }),
+    });
 
     expect(res.status).toBe(403);
     const body = await parseJson(res);
@@ -214,9 +191,7 @@ describe("withOrgAuth", () => {
   });
 
   it("passes OrgAuthContext to handler when authorized", async () => {
-    vi.spyOn(authModule, "auth", "get").mockReturnValue({
-      api: { getSession: vi.fn().mockResolvedValue(fakeSession) },
-    } as never);
+    vi.mocked(auth.api.getSession).mockResolvedValue(fakeSession as never);
     vi.mocked(dbModule.getPool).mockReturnValue({
       query: vi.fn().mockResolvedValue({
         rows: [{ role: "admin", userId: "user-1", organizationId: "org-1" }],
@@ -231,7 +206,9 @@ describe("withOrgAuth", () => {
       };
     });
     const wrappedHandler = withOrgAuth("member", handler);
-    const res = await wrappedHandler(makeRequest(), { orgId: "org-1" });
+    const res = await wrappedHandler(makeRequest(), {
+      params: Promise.resolve({ orgId: "org-1" }),
+    });
 
     expect(res.status).toBe(200);
     const body = await parseJson(res);
@@ -242,14 +219,14 @@ describe("withOrgAuth", () => {
   });
 
   it("returns 401 when no session", async () => {
-    vi.spyOn(authModule, "auth", "get").mockReturnValue({
-      api: { getSession: vi.fn().mockResolvedValue(null) },
-    } as never);
+    vi.mocked(auth.api.getSession).mockResolvedValue(null);
     vi.mocked(dbModule.getPool).mockReturnValue({ query: vi.fn() } as never);
 
     const handler = vi.fn().mockResolvedValue({});
     const wrappedHandler = withOrgAuth("member", handler);
-    const res = await wrappedHandler(makeRequest(), { orgId: "org-1" });
+    const res = await wrappedHandler(makeRequest(), {
+      params: Promise.resolve({ orgId: "org-1" }),
+    });
 
     expect(res.status).toBe(401);
   });

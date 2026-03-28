@@ -9,7 +9,7 @@ import {
   ServiceUnavailableError,
   UnauthorizedError,
   ValidationError,
-} from "../lib/api-errors";
+} from "@/lib/api-errors";
 
 describe("ApiError base class", () => {
   it("stores status, code, and message", () => {

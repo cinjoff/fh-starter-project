@@ -72,10 +72,13 @@ describe("sendEmail", () => {
       html: "<p>Hello</p>",
     });
 
-    expect(Sentry.logger.info).toHaveBeenCalledWith("Email sent (dev mode)", {
-      to: "user@example.com",
-      subject: "Test",
-    });
+    expect(Sentry.logger.info).toHaveBeenCalledWith(
+      "Email sent (dev mode)",
+      expect.objectContaining({
+        to: "user@example.com",
+        subject: "Test",
+      }),
+    );
   });
 
   it("resolves without error in dev mode", async () => {

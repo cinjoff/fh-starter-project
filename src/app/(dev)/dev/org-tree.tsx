@@ -29,19 +29,6 @@ function roleBadgeClass(role: string): string {
 export async function OrgTree() {
   const pool = getPool();
 
-  if (!pool) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Organization Tree</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground">Requires Postgres</p>
-        </CardContent>
-      </Card>
-    );
-  }
-
   let orgs: OrgRow[] = [];
   let members: MemberRow[] = [];
   let isError = false;

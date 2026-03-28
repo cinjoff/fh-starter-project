@@ -2,13 +2,9 @@ import * as Sentry from "@sentry/nextjs";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { OrgSwitcher } from "@/components/org-switcher";
-import { auth, authEnabled } from "@/lib/auth";
+import { auth } from "@/lib/auth";
 
 export default async function ProtectedLayout({ children }: { children: React.ReactNode }) {
-  if (!authEnabled || !auth) {
-    redirect("/");
-  }
-
   const session = await auth.api.getSession({ headers: await headers() });
 
   if (!session) {

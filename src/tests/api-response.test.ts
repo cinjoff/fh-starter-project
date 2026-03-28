@@ -11,10 +11,10 @@ describe("ok()", () => {
     }
   });
 
-  it("does not include trace_id when not provided", () => {
+  it("includes trace_id from context when not explicitly provided", () => {
     const result = ok("hello");
     expect(result.success).toBe(true);
-    expect(result.trace_id).toBeUndefined();
+    expect(typeof result.trace_id).toBe("string");
   });
 
   it("includes trace_id when provided", () => {
@@ -51,9 +51,9 @@ describe("apiError()", () => {
     }
   });
 
-  it("does not include trace_id when not provided", () => {
+  it("includes trace_id from context when not explicitly provided", () => {
     const result = apiError("ERR", "msg");
-    expect(result.trace_id).toBeUndefined();
+    expect(typeof result.trace_id).toBe("string");
   });
 
   it("includes trace_id when provided", () => {

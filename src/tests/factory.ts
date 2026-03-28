@@ -359,8 +359,8 @@ export class TestFactory {
             await pool.query(`DELETE FROM organization WHERE id = $1`, [record.id]);
             break;
         }
-      } catch {
-        // Swallow cleanup errors — test isolation is best-effort
+      } catch (err) {
+        console.warn(`[TestFactory] cleanup failed for ${record.type}`, err);
       }
     }
   }

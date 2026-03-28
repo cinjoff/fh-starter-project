@@ -59,16 +59,6 @@ export class SettingsPage {
     await this.nameInput.fill(name);
   }
 
-  /**
-   * Settings page only has a name field for profile (no email field in the current implementation).
-   * This method is provided for forward compatibility if an email field is added.
-   */
-  async updateEmail(_email: string) {
-    // Email update is not available in the current profile form.
-    // The form only has a Name field. This is a no-op placeholder.
-    throw new Error("Email update is not available in the current settings page.");
-  }
-
   async changePassword(currentPassword: string, newPassword: string) {
     await this.currentPasswordInput.fill(currentPassword);
     await this.newPasswordInput.fill(newPassword);
@@ -94,14 +84,9 @@ export class SettingsPage {
     await expect(this.saveChangesButton).toBeVisible();
   }
 
-  async expectSuccessToast(message?: string) {
-    const toast = this.page.getByRole("status").filter({ hasText: message ?? "" });
-    if (message) {
-      await expect(toast).toBeVisible({ timeout: 5_000 });
-    } else {
-      // Sonner renders toasts — look for any visible toast element
-      await expect(this.page.locator("[data-sonner-toast]")).toBeVisible({ timeout: 5_000 });
-    }
+  async expectSuccessToast(message: string) {
+    const toast = this.page.getByRole("status").filter({ hasText: message });
+    await expect(toast).toBeVisible({ timeout: 5_000 });
   }
 
   async expectErrorMessage(text: string) {

@@ -1,0 +1,1 @@
+-- Seeding handled by scripts/seed.ts — Better Auth tables require Node.js password hashing

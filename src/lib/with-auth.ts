@@ -7,13 +7,13 @@ import { getPool } from "@/lib/db";
 import { logger } from "@/lib/logger";
 import type { MemberContext } from "@/lib/roles";
 import { buildMemberContext, requireRole } from "@/lib/roles";
-import { getTraceId } from "@/lib/trace";
+import { getTraceId, withTrace } from "@/lib/trace";
 import type { MemberRole } from "@/lib/types";
 
 export type AuthContext = {
   user: { id: string; email: string; name: string };
   session: Session;
-  traceId: string | undefined;
+  traceId: string;
 };
 
 export type OrgAuthContext = AuthContext & {
@@ -30,61 +30,56 @@ export function withAuth<T>(
   handler: (req: Request, ctx: AuthContext) => Promise<T>,
 ): (req: Request) => Promise<NextResponse> {
   return async (req: Request): Promise<NextResponse> => {
-    const traceId = getTraceId();
-    const method = req.method;
-    const path = new URL(req.url).pathname;
-    let status = 200;
+    return withTrace(async () => {
+      const traceId = getTraceId();
+      const method = req.method;
+      const path = new URL(req.url).pathname;
+      let status = 200;
 
-    if (!auth) {
-      return NextResponse.json(
-        apiError("SERVICE_UNAVAILABLE", "Auth service not configured", { traceId }),
-        { status: 503 },
-      );
-    }
+      const session = await auth.api.getSession({ headers: req.headers });
 
-    const session = await auth.api.getSession({ headers: req.headers });
-
-    if (!session) {
-      status = 401;
-      logger.info("API request", { method, path, status });
-      return NextResponse.json(apiError("UNAUTHORIZED", "Unauthorized", { traceId }), {
-        status: 401,
-      });
-    }
-
-    const ctx: AuthContext = {
-      user: {
-        id: session.user.id,
-        email: session.user.email,
-        name: session.user.name,
-      },
-      session: session as unknown as Session,
-      traceId,
-    };
-
-    try {
-      const result = await handler(req, ctx);
-      const response = ok(result, { traceId });
-      logger.info("API request", { method, path, status });
-      return NextResponse.json(response);
-    } catch (err) {
-      if (isApiError(err)) {
-        status = err.status;
+      if (!session) {
+        status = 401;
         logger.info("API request", { method, path, status });
-        return NextResponse.json(
-          apiError(err.code, err.message, { traceId, details: err.details }),
-          { status: err.status },
-        );
+        return NextResponse.json(apiError("UNAUTHORIZED", "Unauthorized", { traceId }), {
+          status: 401,
+        });
       }
-      // Non-ApiError: log and rethrow
-      logger.error("Unhandled API error", {
-        method,
-        path,
-        userId: ctx.user.id,
-        ...(traceId !== undefined && { traceId }),
-      });
-      throw err;
-    }
+
+      const ctx: AuthContext = {
+        user: {
+          id: session.user.id,
+          email: session.user.email,
+          name: session.user.name,
+        },
+        session: session as unknown as Session,
+        traceId,
+      };
+
+      try {
+        const result = await handler(req, ctx);
+        const response = ok(result, { traceId });
+        logger.info("API request", { method, path, status });
+        return NextResponse.json(response);
+      } catch (err) {
+        if (isApiError(err)) {
+          status = err.status;
+          logger.info("API request", { method, path, status });
+          return NextResponse.json(
+            apiError(err.code, err.message, { traceId, details: err.details }),
+            { status: err.status },
+          );
+        }
+        // Non-ApiError: log and rethrow
+        logger.error("Unhandled API error", {
+          method,
+          path,
+          userId: ctx.user.id,
+          traceId,
+        });
+        throw err;
+      }
+    });
   };
 }
 
@@ -96,88 +91,80 @@ export function withAuth<T>(
 export function withOrgAuth<T>(
   minRole: MemberRole,
   handler: (req: Request, ctx: OrgAuthContext) => Promise<T>,
-): (req: Request, params: { orgId: string }) => Promise<NextResponse> {
-  return async (req: Request, params: { orgId: string }): Promise<NextResponse> => {
-    const traceId = getTraceId();
-    const method = req.method;
-    const path = new URL(req.url).pathname;
-    let status = 200;
+): (req: Request, context: { params: Promise<{ orgId: string }> }) => Promise<NextResponse> {
+  return async (
+    req: Request,
+    context: { params: Promise<{ orgId: string }> },
+  ): Promise<NextResponse> => {
+    return withTrace(async () => {
+      const traceId = getTraceId();
+      const method = req.method;
+      const path = new URL(req.url).pathname;
+      let status = 200;
 
-    if (!auth) {
-      return NextResponse.json(
-        apiError("SERVICE_UNAVAILABLE", "Auth service not configured", { traceId }),
-        { status: 503 },
-      );
-    }
+      const session = await auth.api.getSession({ headers: req.headers });
 
-    const session = await auth.api.getSession({ headers: req.headers });
-
-    if (!session) {
-      status = 401;
-      logger.info("API request", { method, path, status });
-      return NextResponse.json(apiError("UNAUTHORIZED", "Unauthorized", { traceId }), {
-        status: 401,
-      });
-    }
-
-    const pool = getPool();
-    if (!pool) {
-      return NextResponse.json(
-        apiError("SERVICE_UNAVAILABLE", "Database not configured", { traceId }),
-        { status: 503 },
-      );
-    }
-
-    const userCtx: AuthContext = {
-      user: {
-        id: session.user.id,
-        email: session.user.email,
-        name: session.user.name,
-      },
-      session: session as unknown as Session,
-      traceId,
-    };
-
-    try {
-      const { orgId } = params;
-      const result = await pool.query(
-        'SELECT role, "userId", "organizationId" FROM member WHERE "userId" = $1 AND "organizationId" = $2',
-        [userCtx.user.id, orgId],
-      );
-
-      if (result.rows.length === 0) {
-        throw new ForbiddenError("Not a member of this organization");
+      if (!session) {
+        status = 401;
+        logger.info("API request", { method, path, status });
+        return NextResponse.json(apiError("UNAUTHORIZED", "Unauthorized", { traceId }), {
+          status: 401,
+        });
       }
 
-      const member = buildMemberContext(result.rows[0]);
-      requireRole(member, minRole);
+      const pool = getPool();
 
-      const ctx: OrgAuthContext = {
-        ...userCtx,
-        org: { id: orgId },
-        member,
+      const userCtx: AuthContext = {
+        user: {
+          id: session.user.id,
+          email: session.user.email,
+          name: session.user.name,
+        },
+        session: session as unknown as Session,
+        traceId,
       };
 
-      const data = await handler(req, ctx);
-      const response = ok(data, { traceId });
-      logger.info("API request", { method, path, status });
-      return NextResponse.json(response);
-    } catch (err) {
-      if (isApiError(err)) {
-        status = err.status;
-        logger.info("API request", { method, path, status });
-        return NextResponse.json(
-          apiError(err.code, err.message, { traceId, details: err.details }),
-          { status: err.status },
+      try {
+        const { orgId } = await context.params;
+        const result = await pool.query(
+          'SELECT role, "userId", "organizationId" FROM member WHERE "userId" = $1 AND "organizationId" = $2',
+          [userCtx.user.id, orgId],
         );
+
+        if (result.rows.length === 0) {
+          throw new ForbiddenError("Not a member of this organization");
+        }
+
+        const member = buildMemberContext(result.rows[0]);
+        requireRole(member, minRole);
+
+        const ctx: OrgAuthContext = {
+          ...userCtx,
+          org: { id: orgId },
+          member,
+        };
+
+        const data = await handler(req, ctx);
+        const response = ok(data, { traceId });
+        logger.info("API request", { method, path, status });
+        return NextResponse.json(response);
+      } catch (err) {
+        if (isApiError(err)) {
+          status = err.status;
+          logger.info("API request", { method, path, status });
+          return NextResponse.json(
+            apiError(err.code, err.message, { traceId, details: err.details }),
+            { status: err.status },
+          );
+        }
+        logger.error("Unhandled API error", {
+          method,
+          path,
+          userId: userCtx.user.id,
+          traceId,
+        });
+        throw err;
       }
-      logger.error("Unhandled API error", {
-        method,
-        path,
-        userId: userCtx.user.id,
-        ...(traceId !== undefined && { traceId }),
-      });
-      throw err;
-    }
+    });
   };
 }

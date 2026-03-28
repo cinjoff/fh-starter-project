@@ -1,5 +1,6 @@
 import type { SeverityLevel } from "@sentry/nextjs";
 import * as Sentry from "@sentry/nextjs";
+import { getTraceId } from "@/lib/trace";
 
 export type LogAttributes = Record<string, string | number | boolean>;
 
@@ -20,16 +21,19 @@ const breadcrumbLevel = {
 type LogLevel = keyof typeof breadcrumbLevel;
 
 function log(level: LogLevel, message: string, attrs?: LogAttributes): void {
+  const traceId = getTraceId();
+  const enriched: LogAttributes = { traceId, ...attrs };
+
   const logFn = Sentry.logger[level];
   if (typeof logFn === "function") {
-    logFn(message, attrs);
+    logFn(message, enriched);
   }
 
   Sentry.addBreadcrumb({
     message,
     level: breadcrumbLevel[level],
     category: "app",
-    data: attrs,
+    data: enriched,
   });
 }
 
