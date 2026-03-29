@@ -55,7 +55,7 @@ playwright/.cache/
 .auth/
 
 # planning artifacts (external, symlinked by conductor)
-.planning/
+.planning
 
 # fallow static analysis cache
 .fallow/
