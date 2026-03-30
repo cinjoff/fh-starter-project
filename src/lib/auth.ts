@@ -109,7 +109,7 @@ function createAuth() {
         ? [
             organization({
               allowUserToCreateOrganization: true,
-              organizationLimit: 1,
+              organizationLimit: 5,
               membershipLimit: 50,
               invitationExpiresIn: 60 * 60 * 24 * 7, // 7 days
               sendInvitationEmail: async (data) => {

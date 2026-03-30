@@ -2,6 +2,7 @@
 
 import * as Sentry from "@sentry/nextjs";
 import { APIError } from "better-auth";
+import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { z } from "zod";
 import { type ActionState, actionError, actionSuccess, parseFormData } from "@/lib/action-utils";
@@ -41,6 +42,13 @@ export async function inviteMember(
         return actionError("No active organization");
       }
 
+      const activeMember = await auth.api
+        .getActiveMember({ headers: reqHeaders })
+        .catch(() => null);
+      if (!activeMember || (activeMember.role !== "owner" && activeMember.role !== "admin")) {
+        return actionError("Insufficient permissions");
+      }
+
       const parsed = parseFormData(inviteMemberSchema, formData);
       if (!parsed.success) {
         return parsed.state;
@@ -53,6 +61,7 @@ export async function inviteMember(
           body: { organizationId: activeOrgId, email, role },
           headers: reqHeaders,
         });
+        revalidatePath("/members");
         return actionSuccess("Invitation sent");
       } catch (err) {
         if (err instanceof APIError) {
@@ -100,6 +109,13 @@ export async function removeMember(
         return actionError("No active organization");
       }
 
+      const activeMember = await auth.api
+        .getActiveMember({ headers: reqHeaders })
+        .catch(() => null);
+      if (!activeMember || (activeMember.role !== "owner" && activeMember.role !== "admin")) {
+        return actionError("Insufficient permissions");
+      }
+
       const parsed = parseFormData(removeMemberSchema, formData);
       if (!parsed.success) {
         return parsed.state;
@@ -112,6 +128,7 @@ export async function removeMember(
           body: { organizationId: activeOrgId, memberIdOrEmail: memberId },
           headers: reqHeaders,
         });
+        revalidatePath("/members");
         return actionSuccess("Member removed");
       } catch (err) {
         if (err instanceof APIError) {

@@ -43,6 +43,42 @@ vi.mock("next/link", () => ({
   ),
 }));
 
+vi.mock("@/components/ui/sidebar", () => {
+  const React = require("react");
+  return {
+    useSidebar: () => ({
+      isMobile: false,
+      open: true,
+      state: "expanded" as const,
+      setOpen: () => {},
+      setOpenMobile: () => {},
+      openMobile: false,
+      toggleSidebar: () => {},
+    }),
+    SidebarMenu: ({ children, ...props }: Record<string, unknown>) =>
+      React.createElement("ul", { role: "list", ...props }, children),
+    SidebarMenuItem: ({ children, ...props }: Record<string, unknown>) =>
+      React.createElement("li", props, children),
+    SidebarMenuButton: React.forwardRef(
+      (
+        { children, size: _size, disabled, ...props }: Record<string, unknown>,
+        ref: React.Ref<HTMLButtonElement>,
+      ) =>
+        React.createElement(
+          "button",
+          {
+            ref,
+            type: "button",
+            disabled,
+            ...(disabled ? { "data-disabled": "" } : {}),
+            ...props,
+          },
+          children,
+        ),
+    ),
+  };
+});
+
 import { useRouter } from "next/navigation";
 // Import AFTER mocks
 import type React from "react";
@@ -69,8 +105,16 @@ const ORG_LIST = [
   { id: "platform-id", name: "Platform", slug: "platform" },
 ];
 
+/** Helper to find the org-switcher trigger button via data-testid */
+function getTrigger() {
+  return screen.getByTestId("org-switcher-trigger");
+}
+
 describe("OrgSwitcher", () => {
-  let mockRouter: { refresh: ReturnType<typeof vi.fn>; push: ReturnType<typeof vi.fn> };
+  let mockRouter: {
+    refresh: ReturnType<typeof vi.fn>;
+    push: ReturnType<typeof vi.fn>;
+  };
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -89,18 +133,20 @@ describe("OrgSwitcher", () => {
   // ---------------------------------------------------------------------------
 
   it("renders org list, excluding the platform org", async () => {
-    mockAuthClient.organization.list.mockResolvedValue({ data: ORG_LIST, error: null });
+    mockAuthClient.organization.list.mockResolvedValue({
+      data: ORG_LIST,
+      error: null,
+    });
 
     render(<OrgSwitcher activeOrgId="org-1" />);
 
     // Wait for the list to load
     await waitFor(() => {
-      expect(screen.queryByText("Loading…")).not.toBeInTheDocument();
+      expect(screen.getByText("Acme Corp")).toBeInTheDocument();
     });
 
     // Open the dropdown
-    const trigger = screen.getByRole("button", { name: /switch organization/i });
-    await userEvent.click(trigger);
+    await userEvent.click(getTrigger());
 
     // Scope assertions to the dropdown menu content
     const menu = await screen.findByRole("menu");
@@ -120,16 +166,18 @@ describe("OrgSwitcher", () => {
   // ---------------------------------------------------------------------------
 
   it("shows a check icon next to the active org", async () => {
-    mockAuthClient.organization.list.mockResolvedValue({ data: ORG_LIST, error: null });
+    mockAuthClient.organization.list.mockResolvedValue({
+      data: ORG_LIST,
+      error: null,
+    });
 
     render(<OrgSwitcher activeOrgId="org-1" />);
 
     await waitFor(() => {
-      expect(screen.queryByText("Loading…")).not.toBeInTheDocument();
+      expect(screen.getByText("Acme Corp")).toBeInTheDocument();
     });
 
-    const trigger = screen.getByRole("button", { name: /switch organization/i });
-    await userEvent.click(trigger);
+    await userEvent.click(getTrigger());
 
     const menu = await screen.findByRole("menu");
     await waitFor(() => {
@@ -153,16 +201,18 @@ describe("OrgSwitcher", () => {
   // ---------------------------------------------------------------------------
 
   it("calls setActive with the clicked org id and then refreshes", async () => {
-    mockAuthClient.organization.list.mockResolvedValue({ data: ORG_LIST, error: null });
+    mockAuthClient.organization.list.mockResolvedValue({
+      data: ORG_LIST,
+      error: null,
+    });
 
     render(<OrgSwitcher activeOrgId="org-1" />);
 
     await waitFor(() => {
-      expect(screen.queryByText("Loading…")).not.toBeInTheDocument();
+      expect(screen.getByText("Acme Corp")).toBeInTheDocument();
     });
 
-    const trigger = screen.getByRole("button", { name: /switch organization/i });
-    await userEvent.click(trigger);
+    await userEvent.click(getTrigger());
 
     const menu = await screen.findByRole("menu");
     await waitFor(() => {
@@ -184,16 +234,18 @@ describe("OrgSwitcher", () => {
   // ---------------------------------------------------------------------------
 
   it("renders a Create organization item in the dropdown", async () => {
-    mockAuthClient.organization.list.mockResolvedValue({ data: ORG_LIST, error: null });
+    mockAuthClient.organization.list.mockResolvedValue({
+      data: ORG_LIST,
+      error: null,
+    });
 
     render(<OrgSwitcher activeOrgId="org-1" />);
 
     await waitFor(() => {
-      expect(screen.queryByText("Loading…")).not.toBeInTheDocument();
+      expect(screen.getByText("Acme Corp")).toBeInTheDocument();
     });
 
-    const trigger = screen.getByRole("button", { name: /switch organization/i });
-    await userEvent.click(trigger);
+    await userEvent.click(getTrigger());
 
     const menu = await screen.findByRole("menu");
     await waitFor(() => {
@@ -202,22 +254,28 @@ describe("OrgSwitcher", () => {
   });
 
   // ---------------------------------------------------------------------------
-  // 5. Zero-orgs state: CTA rendered instead of dropdown
+  // 5. Zero-orgs state: dropdown shows only Create organization
   // ---------------------------------------------------------------------------
 
-  it("renders Create organization link when no orgs are available", async () => {
-    mockAuthClient.organization.list.mockResolvedValue({ data: [], error: null });
+  it("shows Create organization in dropdown when no orgs are available", async () => {
+    mockAuthClient.organization.list.mockResolvedValue({
+      data: [],
+      error: null,
+    });
 
     render(<OrgSwitcher activeOrgId="org-1" />);
 
+    // Wait for loading to finish — trigger shows "Select org" when no active org found
     await waitFor(() => {
-      const link = screen.getByRole("link", { name: /create organization/i });
-      expect(link).toBeInTheDocument();
-      expect(link).toHaveAttribute("href", "/create-organization");
+      expect(screen.getByText("Select org")).toBeInTheDocument();
     });
 
-    // No dropdown trigger should be present
-    expect(screen.queryByRole("button", { name: /switch organization/i })).not.toBeInTheDocument();
+    await userEvent.click(getTrigger());
+
+    const menu = await screen.findByRole("menu");
+    await waitFor(() => {
+      expect(within(menu).getByText("Create organization")).toBeInTheDocument();
+    });
   });
 
   // ---------------------------------------------------------------------------
@@ -230,18 +288,18 @@ describe("OrgSwitcher", () => {
 
     render(<OrgSwitcher activeOrgId="org-1" />);
 
-    expect(screen.getByText("Loading…")).toBeInTheDocument();
+    expect(screen.getByText("Loading...")).toBeInTheDocument();
 
     // Trigger button should be disabled during loading
-    const trigger = screen.getByRole("button", { name: /switch organization/i });
-    expect(trigger).toBeDisabled();
+    const trigger = getTrigger();
+    expect(trigger).toHaveAttribute("data-disabled", "");
   });
 
   // ---------------------------------------------------------------------------
-  // 7. Error state: toast called, fallback text rendered
+  // 7. Error state: toast called
   // ---------------------------------------------------------------------------
 
-  it("calls toast.error and renders fallback text when list() rejects", async () => {
+  it("calls toast.error when list() returns an error", async () => {
     mockAuthClient.organization.list.mockResolvedValue({
       data: null,
       error: new Error("Network error"),
@@ -253,10 +311,9 @@ describe("OrgSwitcher", () => {
       expect(mockToast.error).toHaveBeenCalledWith("Failed to load organizations");
     });
 
-    // After error, orgs is set to [] which shows the zero-orgs CTA
+    // After error, orgs is set to [] — trigger shows "Select org"
     await waitFor(() => {
-      const link = screen.getByRole("link", { name: /create organization/i });
-      expect(link).toBeInTheDocument();
+      expect(screen.getByText("Select org")).toBeInTheDocument();
     });
   });
 
@@ -265,16 +322,18 @@ describe("OrgSwitcher", () => {
   // ---------------------------------------------------------------------------
 
   it("navigates to /create-organization when the menu item is clicked", async () => {
-    mockAuthClient.organization.list.mockResolvedValue({ data: ORG_LIST, error: null });
+    mockAuthClient.organization.list.mockResolvedValue({
+      data: ORG_LIST,
+      error: null,
+    });
 
     render(<OrgSwitcher activeOrgId="org-1" />);
 
     await waitFor(() => {
-      expect(screen.queryByText("Loading…")).not.toBeInTheDocument();
+      expect(screen.getByText("Acme Corp")).toBeInTheDocument();
     });
 
-    const trigger = screen.getByRole("button", { name: /switch organization/i });
-    await userEvent.click(trigger);
+    await userEvent.click(getTrigger());
 
     const menu = await screen.findByRole("menu");
     await waitFor(() => {
@@ -293,16 +352,18 @@ describe("OrgSwitcher", () => {
   // ---------------------------------------------------------------------------
 
   it("does not call setActive when clicking the already-active org", async () => {
-    mockAuthClient.organization.list.mockResolvedValue({ data: ORG_LIST, error: null });
+    mockAuthClient.organization.list.mockResolvedValue({
+      data: ORG_LIST,
+      error: null,
+    });
 
     render(<OrgSwitcher activeOrgId="org-1" />);
 
     await waitFor(() => {
-      expect(screen.queryByText("Loading…")).not.toBeInTheDocument();
+      expect(screen.getByText("Acme Corp")).toBeInTheDocument();
     });
 
-    const trigger = screen.getByRole("button", { name: /switch organization/i });
-    await userEvent.click(trigger);
+    await userEvent.click(getTrigger());
 
     const menu = await screen.findByRole("menu");
     await waitFor(() => {
@@ -320,17 +381,21 @@ describe("OrgSwitcher", () => {
   // ---------------------------------------------------------------------------
 
   it("shows toast.error when setActive fails", async () => {
-    mockAuthClient.organization.list.mockResolvedValue({ data: ORG_LIST, error: null });
-    mockAuthClient.organization.setActive.mockResolvedValue({ error: new Error("Switch failed") });
+    mockAuthClient.organization.list.mockResolvedValue({
+      data: ORG_LIST,
+      error: null,
+    });
+    mockAuthClient.organization.setActive.mockResolvedValue({
+      error: new Error("Switch failed"),
+    });
 
     render(<OrgSwitcher activeOrgId="org-1" />);
 
     await waitFor(() => {
-      expect(screen.queryByText("Loading…")).not.toBeInTheDocument();
+      expect(screen.getByText("Acme Corp")).toBeInTheDocument();
     });
 
-    const trigger = screen.getByRole("button", { name: /switch organization/i });
-    await userEvent.click(trigger);
+    await userEvent.click(getTrigger());
 
     const menu = await screen.findByRole("menu");
     await waitFor(() => {

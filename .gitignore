@@ -63,5 +63,10 @@ playwright/.cache/
 # local auth SQLite database
 .data/
 
-# claude local settings (per-workspace env overrides)
+# claude local settings and worktrees
 .claude/settings.json
+.claude/worktrees/
+
+# supabase local state
+supabase/.branches/
+supabase/.temp/

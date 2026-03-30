@@ -11,6 +11,8 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import type { Envelope } from "@sentry/core";
+import { parseEnvelope, serializeEnvelope } from "@sentry/core";
 import Database from "better-sqlite3";
 
 const DB_DIR = path.resolve(process.cwd(), ".sentry-local");
@@ -181,9 +183,10 @@ function extractExceptionValue(obj: Record<string, unknown>): string | null {
  */
 export function createLocalSentryStore() {
   return {
-    push(envelope: Uint8Array) {
+    push(envelope: Envelope) {
       try {
-        const fields = extractEventFields(envelope);
+        const bytes = serializeEnvelope(envelope) as Uint8Array;
+        const fields = extractEventFields(bytes);
         if (fields) {
           const stmt = getDb().prepare(`
             INSERT OR IGNORE INTO events
@@ -195,24 +198,24 @@ export function createLocalSentryStore() {
                @release, @environment, @tags, @breadcrumbs, @exception, @request,
                @contexts, @user_data, @envelope)
           `);
-          stmt.run({ ...fields, envelope: Buffer.from(envelope) });
+          stmt.run({ ...fields, envelope: Buffer.from(bytes) });
           pruneOldEvents();
         }
       } catch (err) {
         console.warn("[sentry-local] Failed to store event:", err);
       }
     },
-    unshift(envelope: Uint8Array) {
+    unshift(envelope: Envelope) {
       this.push(envelope);
     },
-    shift() {
+    shift(): Envelope | undefined {
       try {
         const row = getDb()
           .prepare("SELECT id, envelope FROM events ORDER BY id ASC LIMIT 1")
           .get() as { id: number; envelope: Buffer } | undefined;
         if (row) {
           getDb().prepare("DELETE FROM events WHERE id = ?").run(row.id);
-          return new Uint8Array(row.envelope);
+          return parseEnvelope(new Uint8Array(row.envelope)) as Envelope;
         }
       } catch {
         // best-effort

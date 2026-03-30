@@ -27,7 +27,7 @@ export default async function DashboardPage() {
   const role = activeMember?.role ?? "member";
 
   return (
-    <div className="p-6 space-y-6 max-w-4xl">
+    <div className="p-6 space-y-6 max-w-4xl" data-testid="dashboard-page">
       {/* Header */}
       <div className="flex items-center gap-3">
         <h1 className="text-2xl font-bold">Welcome back, {userName}</h1>
@@ -74,50 +74,59 @@ export default async function DashboardPage() {
               This is a starter template. Here&apos;s how to make it yours:
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <ul className="space-y-2 text-sm list-disc list-inside text-muted-foreground">
-              <li>
-                <span className="font-medium text-foreground">Customize branding:</span> edit{" "}
-                <code className="font-mono text-xs bg-muted px-1 py-0.5 rounded">
-                  src/app/page.tsx
-                </code>{" "}
-                and{" "}
-                <code className="font-mono text-xs bg-muted px-1 py-0.5 rounded">globals.css</code>
+          <CardContent className="space-y-4">
+            <ul className="space-y-2 text-sm text-muted-foreground">
+              <li className="flex gap-2">
+                <span className="shrink-0 font-medium text-foreground">1.</span>
+                <span>
+                  Run{" "}
+                  <code className="font-mono text-xs bg-muted px-1 py-0.5 rounded">
+                    /fh:ui-branding
+                  </code>{" "}
+                  to customize your colors, typography, and design language.
+                </span>
               </li>
-              <li>
-                <span className="font-medium text-foreground">Add your first feature:</span> create
-                a new page in{" "}
-                <code className="font-mono text-xs bg-muted px-1 py-0.5 rounded">
-                  src/app/(app)/
-                </code>
+              <li className="flex gap-2">
+                <span className="shrink-0 font-medium text-foreground">2.</span>
+                <span>
+                  Run{" "}
+                  <code className="font-mono text-xs bg-muted px-1 py-0.5 rounded">
+                    /fh:plan-work
+                  </code>{" "}
+                  to plan your first feature — describe what you want and get a step-by-step plan.
+                </span>
               </li>
-              <li>
-                <span className="font-medium text-foreground">Set up OAuth:</span> add{" "}
-                <code className="font-mono text-xs bg-muted px-1 py-0.5 rounded">
-                  GOOGLE_CLIENT_ID
-                </code>{" "}
-                and{" "}
-                <code className="font-mono text-xs bg-muted px-1 py-0.5 rounded">
-                  GOOGLE_CLIENT_SECRET
-                </code>{" "}
-                to{" "}
-                <code className="font-mono text-xs bg-muted px-1 py-0.5 rounded">.env.local</code>
-              </li>
-              <li>
-                <span className="font-medium text-foreground">Deploy:</span> push to GitHub and
-                connect to Vercel
+              <li className="flex gap-2">
+                <span className="shrink-0 font-medium text-foreground">3.</span>
+                <span>
+                  Run{" "}
+                  <code className="font-mono text-xs bg-muted px-1 py-0.5 rounded">/fh:build</code>{" "}
+                  to turn your plan into working code with tests and quality checks.
+                </span>
               </li>
             </ul>
+            <p className="text-xs text-muted-foreground">
+              See{" "}
+              <a
+                href="https://firehorse.network"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-foreground underline underline-offset-4 hover:text-foreground/80"
+              >
+                firehorse.network
+              </a>{" "}
+              for more guides and workflow documentation.
+            </p>
           </CardContent>
         </Card>
       )}
 
       {/* Quick actions */}
       <div className="flex gap-3">
-        <Button variant="default" render={<Link href="/members" />}>
+        <Button variant="default" nativeButton={false} render={<Link href="/members" />}>
           Manage Members
         </Button>
-        <Button variant="outline" render={<Link href="/settings" />}>
+        <Button variant="outline" nativeButton={false} render={<Link href="/settings" />}>
           Settings
         </Button>
       </div>

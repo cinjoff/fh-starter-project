@@ -124,6 +124,16 @@ export function MembersList({ members, invitations, currentUserRole }: MembersLi
           </TableRow>
         </TableHeader>
         <TableBody>
+          {members.length === 0 && (
+            <TableRow>
+              <TableCell
+                colSpan={isPrivileged ? 5 : 4}
+                className="text-center text-muted-foreground"
+              >
+                No members found.
+              </TableCell>
+            </TableRow>
+          )}
           {members.map((member) => (
             <TableRow key={member.id} data-testid={`member-row-${member.id}`}>
               <TableCell>{member.user.name}</TableCell>

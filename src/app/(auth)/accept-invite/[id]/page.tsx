@@ -64,44 +64,38 @@ export default function AcceptInvitePage() {
   }, [session, sessionLoading, invitationId, router]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-4">
-      <div className="w-full max-w-sm space-y-6">
-        <div className="space-y-2 text-center">
-          <h1 className="text-2xl font-bold tracking-tight">
-            {status === "loading" || status === "accepting"
-              ? "Accepting invitation..."
-              : status === "success"
-                ? "Invitation accepted"
-                : "Unable to accept invitation"}
-          </h1>
-        </div>
-
-        {(status === "loading" || status === "accepting") && (
-          <div className="flex justify-center" data-testid="invite-loading">
-            <div className="border-primary h-6 w-6 animate-spin rounded-full border-2 border-t-transparent" />
-          </div>
-        )}
-
-        {status === "success" && (
-          <p
-            className="text-muted-foreground text-center text-sm"
-            data-testid="invite-success"
-            role="status"
-          >
-            You have been added to the organization. Redirecting to dashboard...
-          </p>
-        )}
-
-        {status === "error" && errorMessage && (
-          <p
-            className="text-destructive text-center text-sm"
-            data-testid="invite-error"
-            role="alert"
-          >
-            {errorMessage}
-          </p>
-        )}
+    <div className="w-full space-y-6">
+      <div className="space-y-2 text-center">
+        <h1 className="text-2xl font-bold tracking-tight">
+          {status === "loading" || status === "accepting"
+            ? "Accepting invitation..."
+            : status === "success"
+              ? "Invitation accepted"
+              : "Unable to accept invitation"}
+        </h1>
       </div>
+
+      {(status === "loading" || status === "accepting") && (
+        <div className="flex justify-center" data-testid="invite-loading">
+          <div className="border-primary h-6 w-6 animate-spin rounded-full border-2 border-t-transparent" />
+        </div>
+      )}
+
+      {status === "success" && (
+        <p
+          className="text-muted-foreground text-center text-sm"
+          data-testid="invite-success"
+          role="status"
+        >
+          You have been added to the organization. Redirecting to dashboard...
+        </p>
+      )}
+
+      {status === "error" && errorMessage && (
+        <p className="text-destructive text-center text-sm" data-testid="invite-error" role="alert">
+          {errorMessage}
+        </p>
+      )}
     </div>
   );
 }

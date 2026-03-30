@@ -41,6 +41,13 @@ export async function updateOrgName(
         return actionError("No active organization");
       }
 
+      const activeMember = await auth.api
+        .getActiveMember({ headers: reqHeaders })
+        .catch(() => null);
+      if (!activeMember || (activeMember.role !== "owner" && activeMember.role !== "admin")) {
+        return actionError("Insufficient permissions");
+      }
+
       const parsed = parseFormData(updateOrgNameSchema, formData);
       if (!parsed.success) {
         return parsed.state;

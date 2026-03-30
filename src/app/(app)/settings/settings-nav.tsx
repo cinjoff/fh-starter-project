@@ -22,7 +22,7 @@ export function SettingsNav({ showOrgTab }: SettingsNavProps) {
             : "text-muted-foreground",
         )}
       >
-        Profile
+        Profile & Password
       </Link>
       {showOrgTab && (
         <Link
