@@ -10,22 +10,9 @@ import type { TestHelpers } from "better-auth/plugins";
 import { organization, testUtils } from "better-auth/plugins";
 import { Pool } from "pg";
 
-export function loadEnv(): Record<string, string> {
-  // Prefer .env.test (isolated test DB) over .env.local (dev)
-  const candidates = [
-    path.resolve(__dirname, "../.env.test"),
-    path.resolve(__dirname, "../.env.local"),
-  ];
-  let content: string | null = null;
-  for (const envPath of candidates) {
-    if (fs.existsSync(envPath)) {
-      content = fs.readFileSync(envPath, "utf8");
-      break;
-    }
-  }
-  if (!content) {
-    throw new Error("No .env.test or .env.local found — cannot load env vars for E2E setup");
-  }
+function parseEnvFile(filePath: string): Record<string, string> {
+  if (!fs.existsSync(filePath)) return {};
+  const content = fs.readFileSync(filePath, "utf8");
   const vars: Record<string, string> = {};
   for (const line of content.split("\n")) {
     const trimmed = line.trim();
@@ -39,6 +26,21 @@ export function loadEnv(): Record<string, string> {
     vars[trimmed.slice(0, eqIdx)] = val;
   }
   return vars;
+}
+
+export function loadEnv(): Record<string, string> {
+  const localPath = path.resolve(__dirname, "../.env.local");
+  const testPath = path.resolve(__dirname, "../.env.test");
+
+  // Load .env.local as base, then overlay .env.test (test-specific overrides win)
+  const localVars = parseEnvFile(localPath);
+  const testVars = parseEnvFile(testPath);
+
+  if (Object.keys(localVars).length === 0 && Object.keys(testVars).length === 0) {
+    throw new Error("No .env.test or .env.local found — cannot load env vars for E2E setup");
+  }
+
+  return { ...localVars, ...testVars };
 }
 
 const envVars = loadEnv();
@@ -67,7 +69,15 @@ export async function getTestHelpers(): Promise<TestHelpers> {
 
 /** Delete a user by email -- useful for cleaning up users created via the UI. */
 export async function deleteUserByEmail(email: string): Promise<void> {
-  await pool.query('DELETE FROM "user" WHERE email = $1', [email]);
+  const result = await pool.query<{ id: string }>('SELECT id FROM "user" WHERE email = $1', [
+    email,
+  ]);
+  if (result.rows.length === 0) return;
+  const userId = result.rows[0].id;
+  await pool.query('DELETE FROM "session" WHERE "userId" = $1', [userId]);
+  await pool.query('DELETE FROM "account" WHERE "userId" = $1', [userId]);
+  await pool.query('DELETE FROM member WHERE "userId" = $1', [userId]);
+  await pool.query('DELETE FROM "user" WHERE id = $1', [userId]);
 }
 
 // ---------------------------------------------------------------------------
@@ -122,6 +132,29 @@ export async function ensureSeedOrg(): Promise<string> {
 // User helpers — idempotent, parallel-safe (handle duplicate key races)
 // ---------------------------------------------------------------------------
 
+/** Ensure the user has a credential account (needed for password change UI). */
+async function ensureCredentialAccount(userId: string, email: string): Promise<void> {
+  const existing = await pool.query(
+    `SELECT id FROM "account" WHERE "userId" = $1 AND "providerId" = 'credential'`,
+    [userId],
+  );
+  if (existing.rows.length > 0) return;
+
+  try {
+    // Use a known hashed password — the same as seed.ts uses for test accounts
+    const { hashPassword } = await import("better-auth/crypto");
+    const hashed = await hashPassword("password123");
+    await pool.query(
+      `INSERT INTO "account" (id, "accountId", "providerId", "userId", password, "createdAt", "updatedAt")
+       VALUES (gen_random_uuid(), $1, 'credential', $2, $3, NOW(), NOW())`,
+      [email, userId, hashed],
+    );
+  } catch (err: unknown) {
+    if (err instanceof Error && err.message.includes("duplicate key")) return;
+    throw err;
+  }
+}
+
 /** Generic helper: create or reuse a user, ensure seed org membership. */
 async function ensureUser(
   helpers: TestHelpers,
@@ -152,6 +185,7 @@ async function ensureUser(
         );
         user = retry.rows[0];
         await ensureSeedOrg();
+        await ensureCredentialAccount(user.id, user.email);
         await ensureOrgMembership(user.id, _seedOrgId, orgRole);
         return user;
       }
@@ -161,6 +195,7 @@ async function ensureUser(
   }
 
   await ensureSeedOrg();
+  await ensureCredentialAccount(user.id, user.email);
   await ensureOrgMembership(user.id, _seedOrgId, orgRole);
 
   return user;

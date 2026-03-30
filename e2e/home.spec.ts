@@ -4,7 +4,7 @@ test("home page loads", async ({ page }) => {
   await page.goto("/");
 
   await expect(page.getByRole("heading", { name: "fh-starter-project" })).toBeVisible();
-  await expect(page.getByText("Production-ready Next.js starter template")).toBeVisible();
+  await expect(page.getByText("Production-ready starter template")).toBeVisible();
 });
 
 test("404 page shows for unknown routes", async ({ page }) => {

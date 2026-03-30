@@ -10,7 +10,11 @@ import { logger } from "./logger";
 
 function createDatabase(): Pool | { client: "better-sqlite3"; url: string } {
   if (env.DATABASE_URL) {
-    return new Pool({ connectionString: env.DATABASE_URL });
+    const isLocal = /localhost|127\.0\.0\.1/.test(env.DATABASE_URL);
+    return new Pool({
+      connectionString: env.DATABASE_URL,
+      ssl: isLocal ? false : { rejectUnauthorized: false },
+    });
   }
   // SQLite fallback for zero-config local dev (no orgs support)
   return { client: "better-sqlite3", url: "./local.db" };

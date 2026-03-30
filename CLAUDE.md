@@ -129,6 +129,12 @@ Components (all server components, no client interactivity):
 - File convention: `*.test.ts(x)` for Vitest, `*.spec.ts` for Playwright
 - Use `pnpm test --run` in CI/scripts to avoid watch mode hanging
 
+### E2E specifics
+- Test server runs on `CONDUCTOR_PORT+100` (never reuses dev server) with isolated DB `fh_starter_test`
+- `authedPage`/`user2Page` fixtures create a fresh session per-test via `testHelper.getCookies()` — not stored `.auth/` state — so destructive tests (e.g. sign-out) can't break other tests
+- Sonner toasts: use `getByText(message)`, not `getByRole("status")` — sonner renders `li` elements, not status roles
+- `CardTitle` renders as `div`, not a heading — use `getByText` not `getByRole("heading")` for card titles
+
 ## Planning
 
 Project state tracked in `.planning/`. Run `/fh:progress` to check status.
@@ -141,6 +147,9 @@ Design tokens in `.planning/DESIGN.md` — run `/fh:ui-branding` to customize.
 - Proxy (`src/proxy.ts`) only applies security headers — auth redirects are in `(app)/layout.tsx`
 - OAuth callback validates `x-forwarded-host` against `NEXT_PUBLIC_APP_URL`
 - Sentry local mode: `SENTRY_LOCAL=true` in .env.local, query with `node src/lib/sentry-local-query.mjs recent`
+- `.env.local` has no `BETTER_AUTH_SECRET` — app falls back to `"dev-secret-DO-NOT-USE-IN-PRODUCTION-000"` (see `src/lib/env.ts`); `.env.test` holds the real test secret
+- `(app)/layout.tsx` redirects to `/create-organization` when `session.activeOrganizationId` is null — E2E sessions must have this set
+- `OrgSwitcher` filters out orgs with `slug === "platform"` — the seed org won't appear in the switcher UI
 
 # Compact Instructions
 

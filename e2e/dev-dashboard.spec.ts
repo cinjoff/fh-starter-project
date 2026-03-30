@@ -9,7 +9,7 @@ test.describe("Dev Dashboard", () => {
 
     // At least one status card renders
     await expect(page.getByText("Auth Mode")).toBeVisible();
-    await expect(page.getByText("Database")).toBeVisible();
+    await expect(page.getByText("Database", { exact: true })).toBeVisible();
 
     // Recent errors section renders
     await expect(page.getByText("Recent Sentry Errors")).toBeVisible();
