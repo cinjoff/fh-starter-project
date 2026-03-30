@@ -1,8 +1,8 @@
 {
   "scripts": {
     "setup": "sh -c 'pnpm install && (node -e \"require(\\\"better-sqlite3\\\")\" 2>/dev/null || (cd node_modules/better-sqlite3 && npx --yes prebuild-install 2>/dev/null || pnpm rebuild better-sqlite3 2>/dev/null || true)) && [ -f \"$CONDUCTOR_ROOT_PATH/.env.local\" ] && cp \"$CONDUCTOR_ROOT_PATH/.env.local\" .env.local || true; [ -d \"$CONDUCTOR_ROOT_PATH/.planning\" ] && { [ -L .planning ] || rm -rf .planning; ln -sf \"$CONDUCTOR_ROOT_PATH/.planning\" .planning; } || true; mkdir -p \"$CONDUCTOR_ROOT_PATH/.data\" && [ ! -e .data ] && ln -s \"$CONDUCTOR_ROOT_PATH/.data\" .data || true; node -e \"var fs=require(\\\"fs\\\"),p=require(\\\"path\\\"),f=\\\".claude/settings.json\\\",s={};try{s=JSON.parse(fs.readFileSync(f,\\\"utf8\\\"))}catch{}s.env=Object.assign(s.env||{},{CLAUDE_CODE_TASK_LIST_ID:process.env.CONDUCTOR_WORKSPACE_NAME||\\\"default\\\",CLAUDE_MEM_PROJECT:p.basename(process.env.CONDUCTOR_ROOT_PATH||process.cwd())});fs.writeFileSync(f,JSON.stringify(s,null,2)+\\\"\\\\n\\\")\"'",
-    "run": "sh -c 'export BETTER_AUTH_URL=http://localhost:$CONDUCTOR_PORT NEXT_PUBLIC_APP_URL=http://localhost:$CONDUCTOR_PORT && pnpm dev --port $CONDUCTOR_PORT'",
-    "archive": "sh -c 'rm -rf \"$HOME/.claude/tasks/${CONDUCTOR_WORKSPACE_NAME}\" 2>/dev/null; true'"
+    "run": "sh -c 'supabase status >/dev/null 2>&1 || supabase start && export BETTER_AUTH_URL=http://localhost:$CONDUCTOR_PORT NEXT_PUBLIC_APP_URL=http://localhost:$CONDUCTOR_PORT && pnpm dev --port $CONDUCTOR_PORT'",
+    "archive": "sh -c 'supabase stop 2>/dev/null; rm -rf \"$HOME/.claude/tasks/${CONDUCTOR_WORKSPACE_NAME}\" 2>/dev/null; true'"
   },
   "env": {
     "CLAUDE_CODE_ENABLE_TASKS": "true",

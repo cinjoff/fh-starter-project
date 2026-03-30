@@ -13,6 +13,7 @@
  *   line 4: item body
  *   …
  */
+import { parseEnvelope } from "@sentry/core";
 import { NextResponse } from "next/server";
 
 /** Item types the tunnel accepts from the Sentry SDK. */
@@ -74,7 +75,7 @@ export async function POST(req: Request) {
 
       // Build a minimal envelope: empty envelope header + item header + item body
       const miniEnvelope = new TextEncoder().encode(`{}\n${headerLine}\n${bodyLine}`);
-      store.push(miniEnvelope);
+      store.push(parseEnvelope(miniEnvelope));
     }
 
     return NextResponse.json({ ok: true });

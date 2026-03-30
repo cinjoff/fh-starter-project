@@ -1,7 +1,9 @@
 import * as Sentry from "@sentry/nextjs";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { OrgSwitcher } from "@/components/org-switcher";
+import { AppSidebar } from "@/components/app-sidebar";
+import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { auth } from "@/lib/auth";
 
 export default async function ProtectedLayout({ children }: { children: React.ReactNode }) {
@@ -22,11 +24,22 @@ export default async function ProtectedLayout({ children }: { children: React.Re
   }
 
   return (
-    <div className="min-h-screen">
-      <header className="border-b px-4 py-3 flex items-center justify-between">
-        <OrgSwitcher activeOrgId={activeOrgId} />
-      </header>
-      <main>{children}</main>
-    </div>
+    <TooltipProvider>
+      <SidebarProvider>
+        <AppSidebar
+          activeOrgId={activeOrgId}
+          user={{
+            name: session.user.name,
+            email: session.user.email,
+          }}
+        />
+        <SidebarInset>
+          <header className="flex h-12 shrink-0 items-center gap-2 border-b px-4">
+            <SidebarTrigger aria-label="Toggle navigation" />
+          </header>
+          <div className="flex-1 p-4">{children}</div>
+        </SidebarInset>
+      </SidebarProvider>
+    </TooltipProvider>
   );
 }

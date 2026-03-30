@@ -23,12 +23,7 @@ export default async function SettingsPage() {
   const userName = session?.user.name ?? "";
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6 px-4 py-8">
-      <div>
-        <h1 className="text-2xl font-bold">Settings</h1>
-        <p className="text-sm text-muted-foreground">Manage your account settings.</p>
-      </div>
-
+    <div className="space-y-6">
       <Card>
         <CardHeader>
           <CardTitle>Profile</CardTitle>

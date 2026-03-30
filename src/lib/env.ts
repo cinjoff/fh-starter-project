@@ -16,6 +16,10 @@ export const env = createEnv({
     SENTRY_LOCAL: z.string().optional(),
     GOOGLE_CLIENT_ID: z.string().optional(),
     GOOGLE_CLIENT_SECRET: z.string().optional(),
+    ENABLE_AUTH: z.string().optional().default("true"),
+    ENABLE_DB: z.string().optional().default("true"),
+    ENABLE_ORGANIZATIONS: z.string().optional().default("true"),
+    ENABLE_EMAILS: z.string().optional().default("false"),
   },
   client: {
     NEXT_PUBLIC_APP_URL: z.string().optional().default("http://localhost:3000"),

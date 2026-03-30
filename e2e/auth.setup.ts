@@ -6,6 +6,7 @@ import {
   getTestHelpers,
   pool,
 } from "./auth-test-helpers";
+import { AUTH_FILE, AUTH_FILE_2 } from "./db-config";
 
 /**
  * Set activeOrganizationId on all sessions for a user.
@@ -19,9 +20,6 @@ async function setActiveOrgForUser(userId: string, orgId: string): Promise<void>
     userId,
   ]);
 }
-
-const authFile = ".auth/user.json";
-const authFile2 = ".auth/user2.json";
 
 setup("create authenticated session", async ({ page }) => {
   const testHelper = await getTestHelpers();
@@ -39,7 +37,7 @@ setup("create authenticated session", async ({ page }) => {
   await setActiveOrgForUser(user.id, getSeedOrgId());
 
   await page.goto("/dashboard");
-  await page.context().storageState({ path: authFile });
+  await page.context().storageState({ path: AUTH_FILE });
 });
 
 setup("create second authenticated session", async ({ page }) => {
@@ -58,7 +56,7 @@ setup("create second authenticated session", async ({ page }) => {
   await setActiveOrgForUser(user2.id, getSeedOrgId());
 
   await page.goto("/dashboard");
-  await page.context().storageState({ path: authFile2 });
+  await page.context().storageState({ path: AUTH_FILE_2 });
 });
 
 setup.afterAll(async () => {

@@ -35,6 +35,8 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 !.env.example
+!.env.test.example
+!.env.test
 
 # vercel
 .vercel
@@ -63,5 +65,10 @@ playwright/.cache/
 # local auth SQLite database
 .data/
 
-# claude local settings (per-workspace env overrides)
+# claude local settings and worktrees
 .claude/settings.json
+.claude/worktrees/
+
+# supabase local state
+supabase/.branches/
+supabase/.temp/

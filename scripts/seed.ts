@@ -86,7 +86,8 @@ async function main() {
         "userId"         TEXT,
         "organizationId" TEXT,
         role             TEXT,
-        "createdAt"      TIMESTAMP
+        "createdAt"      TIMESTAMP,
+        UNIQUE ("userId", "organizationId")
       )
     `);
 

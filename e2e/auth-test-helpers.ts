@@ -11,8 +11,21 @@ import { organization, testUtils } from "better-auth/plugins";
 import { Pool } from "pg";
 
 export function loadEnv(): Record<string, string> {
-  const envPath = path.resolve(__dirname, "../.env.local");
-  const content = fs.readFileSync(envPath, "utf8");
+  // Prefer .env.test (isolated test DB) over .env.local (dev)
+  const candidates = [
+    path.resolve(__dirname, "../.env.test"),
+    path.resolve(__dirname, "../.env.local"),
+  ];
+  let content: string | null = null;
+  for (const envPath of candidates) {
+    if (fs.existsSync(envPath)) {
+      content = fs.readFileSync(envPath, "utf8");
+      break;
+    }
+  }
+  if (!content) {
+    throw new Error("No .env.test or .env.local found — cannot load env vars for E2E setup");
+  }
   const vars: Record<string, string> = {};
   for (const line of content.split("\n")) {
     const trimmed = line.trim();
@@ -30,7 +43,9 @@ export function loadEnv(): Record<string, string> {
 
 const envVars = loadEnv();
 
-export const pool = new Pool({ connectionString: envVars.DATABASE_URL });
+export const pool = new Pool({
+  connectionString: process.env.DATABASE_URL || envVars.DATABASE_URL,
+});
 
 export const testAuth = betterAuth({
   secret: envVars.BETTER_AUTH_SECRET,
@@ -73,7 +88,7 @@ export const E2E_USER2_EMAIL = process.env.E2E_USER2_EMAIL || "test+e2e-2@exampl
 let _seedOrgId = "00000000-0000-0000-0000-000000000001";
 let _seedOrgResolved = false;
 
-export const SEED_ORG_SLUG = "default";
+export const SEED_ORG_SLUG = "platform";
 
 /** Returns the current resolved seed org ID. Safe in CJS — always reads the live value. */
 export function getSeedOrgId(): string {
@@ -88,16 +103,15 @@ export function getSeedOrgId(): string {
 export async function ensureSeedOrg(): Promise<string> {
   if (_seedOrgResolved) return _seedOrgId;
 
-  await pool.query(
-    `INSERT INTO organization (id, name, slug, "createdAt")
-     VALUES ($1, $2, $3, NOW())
-     ON CONFLICT (slug) DO NOTHING`,
-    [_seedOrgId, "Default Organization", SEED_ORG_SLUG],
-  );
-
   const result = await pool.query("SELECT id FROM organization WHERE slug = $1", [SEED_ORG_SLUG]);
-  if (result.rows.length > 0 && result.rows[0].id !== _seedOrgId) {
+  if (result.rows.length > 0) {
     _seedOrgId = result.rows[0].id;
+  } else {
+    await pool.query(
+      `INSERT INTO organization (id, name, slug, "createdAt")
+       VALUES ($1, $2, $3, NOW())`,
+      [_seedOrgId, "Platform", SEED_ORG_SLUG],
+    );
   }
 
   _seedOrgResolved = true;
@@ -174,12 +188,23 @@ export async function ensureOrgMembership(
   organizationId: string,
   role = "member",
 ): Promise<void> {
-  await pool.query(
-    `INSERT INTO member (id, "userId", "organizationId", role, "createdAt")
-     VALUES (gen_random_uuid(), $1, $2, $3, NOW())
-     ON CONFLICT ("userId", "organizationId") DO NOTHING`,
-    [userId, organizationId, role],
+  const existing = await pool.query(
+    `SELECT id FROM member WHERE "userId" = $1 AND "organizationId" = $2`,
+    [userId, organizationId],
   );
+  if (existing.rows.length > 0) return;
+
+  try {
+    await pool.query(
+      `INSERT INTO member (id, "userId", "organizationId", role, "createdAt")
+       VALUES (gen_random_uuid(), $1, $2, $3, NOW())`,
+      [userId, organizationId, role],
+    );
+  } catch (err: unknown) {
+    // Handle race: another worker inserted between our check and insert
+    if (err instanceof Error && err.message.includes("duplicate key")) return;
+    throw err;
+  }
 }
 
 /** Delete an organization by slug -- useful for cleaning up orgs created in tests. */
@@ -187,6 +212,7 @@ export async function deleteOrgBySlug(slug: string): Promise<void> {
   const result = await pool.query("SELECT id FROM organization WHERE slug = $1", [slug]);
   if (result.rows.length === 0) return;
   const orgId = result.rows[0].id;
+  await pool.query('DELETE FROM customer WHERE "organizationId" = $1', [orgId]);
   await pool.query('DELETE FROM member WHERE "organizationId" = $1', [orgId]);
   await pool.query("DELETE FROM organization WHERE id = $1", [orgId]);
 }
