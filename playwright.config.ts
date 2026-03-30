@@ -1,7 +1,9 @@
 import { defineConfig, devices } from "@playwright/test";
+import { TEST_DB_URL } from "./e2e/db-config";
 
 export default defineConfig({
   globalSetup: "./e2e/global-setup.ts",
+  globalTeardown: "./e2e/global-teardown.ts",
   testDir: "./e2e",
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
@@ -28,5 +30,6 @@ export default defineConfig({
     command: "pnpm dev",
     url: "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
+    env: { DATABASE_URL: TEST_DB_URL },
   },
 });
