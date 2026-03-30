@@ -16,12 +16,16 @@ export class DashboardPage {
     return this.page.getByRole("heading", { name: /Welcome,/ });
   }
 
-  get signOutButton() {
-    return this.page.getByRole("button", { name: /sign out/i });
+  get userMenuTrigger() {
+    return this.page.getByTestId("user-menu-trigger");
+  }
+
+  get signOutMenuItem() {
+    return this.page.getByTestId("user-menu-sign-out");
   }
 
   get orgSwitcherButton() {
-    return this.page.getByLabel("Switch organization");
+    return this.page.getByTestId("org-switcher-trigger");
   }
 
   get settingsLink() {
@@ -37,7 +41,8 @@ export class DashboardPage {
   }
 
   async signOut() {
-    await this.signOutButton.click();
+    await this.userMenuTrigger.click();
+    await this.signOutMenuItem.click();
   }
 
   async switchOrg(orgName: string) {

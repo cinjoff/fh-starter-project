@@ -17,7 +17,7 @@ test.describe("Settings — profile", () => {
     await settings.updateName("E2E Test User");
     await settings.submitProfile();
 
-    await settings.expectSuccessToast("Profile updated");
+    await settings.expectSuccessToast("Profile updated successfully");
   });
 });
 
@@ -28,10 +28,10 @@ test.describe("Settings — password", () => {
 
     // The test user's credentials are set in the auth setup fixture.
     // We use a known password from the test seed; the server validates it.
-    await settings.changePassword("password", "NewPassword123!");
+    await settings.changePassword("password123", "NewPassword123!");
     await settings.submitPassword();
 
-    await settings.expectSuccessToast("Password updated");
+    await settings.expectSuccessToast("Password changed successfully");
   });
 
   test("mismatched passwords shows error message", async ({ authedPage }) => {
@@ -39,7 +39,7 @@ test.describe("Settings — password", () => {
     await settings.goto();
 
     // Fill confirm password with a value that doesn't match new password
-    await settings.currentPasswordInput.fill("password");
+    await settings.currentPasswordInput.fill("password123");
     await settings.newPasswordInput.fill("NewPassword123!");
     await settings.confirmPasswordInput.fill("DifferentPassword456!");
     await settings.submitPassword();

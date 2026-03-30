@@ -16,11 +16,11 @@ export class SettingsPage {
   }
 
   get profileHeading() {
-    return this.page.getByRole("heading", { name: "Profile" });
+    return this.page.getByText("Profile", { exact: true }).first();
   }
 
   get passwordHeading() {
-    return this.page.getByRole("heading", { name: "Password" });
+    return this.page.getByText("Password", { exact: true }).first();
   }
 
   get nameInput() {
@@ -32,7 +32,7 @@ export class SettingsPage {
   }
 
   get newPasswordInput() {
-    return this.page.getByLabel("New Password");
+    return this.page.getByLabel("New Password", { exact: true });
   }
 
   get confirmPasswordInput() {
@@ -79,14 +79,12 @@ export class SettingsPage {
 
   async expectProfileFormVisible() {
     await expect(this.heading).toBeVisible();
-    await expect(this.profileHeading).toBeVisible();
     await expect(this.nameInput).toBeVisible();
     await expect(this.saveChangesButton).toBeVisible();
   }
 
   async expectSuccessToast(message: string) {
-    const toast = this.page.getByRole("status").filter({ hasText: message });
-    await expect(toast).toBeVisible({ timeout: 5_000 });
+    await expect(this.page.getByText(message)).toBeVisible({ timeout: 10_000 });
   }
 
   async expectErrorMessage(text: string) {

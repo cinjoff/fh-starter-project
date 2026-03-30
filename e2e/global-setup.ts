@@ -36,13 +36,7 @@ export default async function globalSetup(): Promise<void> {
   await client.query(`CREATE DATABASE ${TEST_DB_NAME}`);
   await client.end();
 
-  // 3. Run migrations against the test DB
-  execSync(`supabase db push --db-url "${TEST_DB_URL}" --include-all`, {
-    stdio: "inherit",
-    timeout: 60_000,
-  });
-
-  // 4. Seed with test data
+  // 3. Seed with test data (seed.ts creates all tables via CREATE TABLE IF NOT EXISTS)
   execSync("npx tsx scripts/seed.ts", {
     cwd: path.resolve(__dirname, ".."),
     stdio: "inherit",
@@ -50,7 +44,7 @@ export default async function globalSetup(): Promise<void> {
     env: { ...process.env, DATABASE_URL: TEST_DB_URL },
   });
 
-  // 5. Verify seed data
+  // 4. Verify seed data
   const pool = new Pool({ connectionString: TEST_DB_URL, max: 1 });
   try {
     const result = await pool.query<{ count: string }>(

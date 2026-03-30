@@ -66,8 +66,9 @@ test.describe("Auth flows — sign up", () => {
     await loginPage.signUp("E2E Signup User", email, "TestPassword123!");
 
     await loginPage.expectVerificationPrompt();
+    // In local dev (no RESEND_API_KEY), email verification is automatic
     await expect(loginPage.verificationPrompt.getByRole("status")).toHaveText(
-      "Check your email to verify your account before signing in.",
+      "Account created! Email verification is automatic in local dev.",
     );
 
     // Clean up user created via the UI
